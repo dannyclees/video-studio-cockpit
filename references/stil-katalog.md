@@ -1,10 +1,18 @@
-# Stil-Katalog: die 21 Looks auf einen Blick
+# Stil-Katalog: die Looks auf einen Blick
 
 Für den Fragebogen (Runde 2). Claude liest diese Datei, schlägt **3 passende Looks** vor und begründet jeden in einem Satz.
 Die volle Spezifikation steht immer in `styles/<id>/STYLE.md` – die ist Gesetz, sobald ein Look gewählt ist.
 
 Legende: **Hell/Dunkel** · **Medien** = es gibt ein „With media“-Galerievideo (Fotos/Clips sitzen im Design) ·
 **Vorlage** = fertiges Referenzstück `styles/<id>/index.html` (Länge, Loop ja/nein) oder „nur Spec“.
+
+## ★ C&E-Hausstil
+
+| id | Name | Gefühl | Am besten für | Hell/Dunkel | Vorlage |
+|---|---|---|---|---|---|
+| `explainer-dark` | Dunkles Erklärdiagramm | dunkle KI-Maschine, orange Pakete wandern von Karte zu Karte, 3D-Kamera | Promo- und Erklärvideos, „so arbeiten wir“, KI-/Claude-Code-Workflows | dunkel, Claude-Farben | folgt mit dem ersten Film (loopt) |
+
+Lieblingslook von Danny. Bei Erklär- und Promo-Videos für C&E und KI-Themen immer als Vorschlag A anbieten.
 
 ## Studio-Stücke (aufwendig, mit Medien-Variante)
 
@@ -46,12 +54,12 @@ Startpunkt für die Vorschläge in Runde 2. Immer an Marke, Plattform und Medien
 | Social-Ad / Reel mit starkem Hook (Handwerk, Dienstleistung) | `poster-pop` | `swiss-kinetic`, `risograph` |
 | Ad mit Kundenfotos oder Baustellen-Clips | `swiss-kinetic` (Medien) | `paper-world` (Medien), `data-story` (Medien) |
 | Ergebnisse, Zahlen, Vorher/Nachher | `data-story` | `editorial-paper`, `growing-city` |
-| Erklärvideo: Ablauf, Prozess, „so arbeiten wir“ | `explainer-diagram` | `blueprint`, `midnight-grid` |
+| Erklärvideo: Ablauf, Prozess, „so arbeiten wir“ | `explainer-dark` ★ | `explainer-diagram`, `blueprint` |
 | Technik / Produktaufbau / Bauteile | `blueprint` | `explainer-diagram`, `graphite-ui` |
 | Marken-Intro, Logo-Sting, ruhiger Imagefilm | `ink-line` | `paper-world`, `particle-field` |
 | Firmengeschichte, Jubiläum, „seit 1985“ | `time-travel` | `growing-city`, `paper-world` |
 | Software, App, Tool-Demo | `graphite-ui` | `weather-widget`, `editor-ui` |
-| KI-/Tech-Thema, eigene Marke C&E | `particle-field` | `midnight-grid`, `explainer-diagram` |
+| KI-/Tech-Thema, eigene Marke C&E | `explainer-dark` ★ | `particle-field`, `midnight-grid` |
 | Event, Musik, Kultur | `risograph` | `swiss-kinetic`, `audio-app-ui` |
 | Titelkarte / Loop für Website oder Screen | `swiss-grid` | `paper-cut`, `editorial-paper` |
 

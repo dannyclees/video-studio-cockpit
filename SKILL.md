@@ -115,7 +115,7 @@ Katalog-Satz beschreiben; Galerievideos liegen unter `$SKILL/gallery/videos/<id>
 
 - `questions.md` – der Fragebogen (frei änderbar). `config.json` – optionaler Abschluss-Link.
 - `references/stil-katalog.md` – alle 21 Looks auf Deutsch + Zuordnung Zweck → Look.
-- `styles/<id>/` – die 21 Looks: `STYLE.md` (Palette, Typo, Easing, Bewegungsregeln, Signature-Moves, Medien, Verbote),
+- `styles/<id>/` – die Looks (21 aus der Galerie + Hausstil `explainer-dark`): `STYLE.md` (Palette, Typo, Easing, Bewegungsregeln, Signature-Moves, Medien, Verbote),
   bei den meisten plus `index.html` als fertiges Referenzstück.
 - `gallery/` – Galerieseite (`index.html`, `looks.js`) und Videos (`videos/<id>.mp4`, `videos/<id>-media.mp4`).
 - `references/` – die 5 Hacks, Bewegungs-Zahlen, HyperFrames-Regeln, Loops, Medien & Higgsfield, Stil-Format.
