@@ -1,103 +1,124 @@
 ---
-name: claude-video-studio
-description: Claude Video 2.0. Make studio-quality motion graphics with Claude Code, free. It opens a gallery of 21 looks playing as real videos so the person picks one, asks 5 short questions, then builds the piece in code (HTML + GSAP, rendered to MP4 with HyperFrames). Pure graphics, or with the person's own photos and clips, or with AI clips from Higgsfield behind a storyboard and credit check that waits for "yes". Every piece is checked from real frames: 3 stills to approve, a pacing check, and a pixel loop check. Use when someone says "make me a motion graphic", "make a video intro", "animate this", "make a loop", "make a title card", "motion graphics with my photos", "turn my photo into a clip", "Claude Video", or "/claude-video-studio".
+name: video-studio-cockpit
+description: Video-Studio für Clees & Ernster – baut Motion Graphics in Studio-Qualität aus Code (HTML + GSAP, gerendert mit HyperFrames zu MP4 oder transparentem MOV) in 21 festen Looks. Startet IMMER mit einem Fragebogen in 4 Runden (Projekt, Inhalt & Marke, Look aus der Video-Galerie, Produktionsplan) und baut erst nach „los“. Danach Storyboard, 3 Standbilder zur Freigabe, Render und automatische Pacing- und Loop-Checks an echten Frames. Mit reiner Grafik, eigenen Fotos/Clips oder KI-Clips von Higgsfield (Kosten vorher, wartet auf „ja“). Nutzen bei „mach ein Video“, „Motion Graphic“, „animier das“, „Reel/Short/Ad als Animation“, „Intro“, „Titelkarte“, „Logo-Sting“, „Loop“, „Erklärvideo aus Code“, „Stil-Galerie“, „Video Studio“ oder „/video-studio-cockpit“.
 ---
 
-# Claude Video 2.0
+# Video Studio Cockpit
 
-Three stages: **A. pick a look** (gallery) -> **B. five questions** -> **C. build** (storyboard, stills, render, checks).
-Every step follows the 5 hacks in `references/hacks.md`: one style, real references, a brief in numbers,
-one loop clock, and checking frames, not code.
+Drei Phasen: **1. Fragebogen** (4 Runden, gemeinsam entscheiden) → **2. Bauen** (Brief, Storyboard, Standbilder) →
+**3. Rendern & prüfen** (Render, Checks, Übergabe).
+Alles folgt den 5 Hacks aus `references/hacks.md`: ein Stil, echte Referenzen, ein Brief in Zahlen,
+eine Loop-Uhr, Frames prüfen statt Code.
 
-`$SKILL` below means this skill's folder (usually `~/.claude/skills/claude-video-studio`).
-Make a new work folder for each piece (for example `./video-<short-name>/`). Never build inside `$SKILL`.
+Sprache mit der Person: **Deutsch**, kurz und konkret. Die Skripte geben Englisch aus – Ergebnisse auf Deutsch zusammenfassen.
 
-## Before you start
+`$SKILL` meint den Ordner dieses Skills (meist `~/.claude/skills/video-studio-cockpit`).
+Für jedes Stück einen eigenen Arbeitsordner anlegen (z. B. `./video-<kurzname>/`). Nie in `$SKILL` bauen.
 
-Run `bash $SKILL/scripts/doctor.sh` once. If something is missing, give the person the one fix command and stop.
+## Vorab: Werkzeuge prüfen
 
-## Stage A: pick a look
+`bash $SKILL/scripts/doctor.sh` einmal ausführen (`doctor.sh media`, wenn KI-Clips im Spiel sind).
+Fehlt etwas, der Person den einen Fix-Befehl geben und anhalten.
 
-1. Start the gallery in the background (use your background-run option; it serves on 127.0.0.1 and
-   stops by itself after 90 minutes):
-   `python3 $SKILL/scripts/gallery.py`
-   It opens in their browser and prints the address. Give them the address too, in case it did not open
-   (add `--no-open` if you only want the address). Stop it once they have picked, or leave it: it stops by itself.
-2. Say, in one short message:
-   "Your style gallery is open: <address>. Every tile is a real video made from code. Flip a tile to
-   'With media' to see it with real photos and footage. Press 'Use this style' on the one you like and
-   paste it here. Or paste 1 to 3 links or images of your own reference."
-3. When they answer:
-   - A style id (like `paper-world`): read `$SKILL/styles/<id>/STYLE.md`. That spec is now law for this piece.
-   - Their own references: look at each one (open links, read images). Write a new spec in the work folder,
-     `STYLE.md`, in the format of `$SKILL/references/style-format.md`. Describe HOW each reference was made
-     (masked text, slow camera, long holds), with hex colours and easing numbers. Show it in 5 lines.
-   - "You pick": choose the best look for their topic and say why in one line.
+## Phase 1: Der Fragebogen
 
-## Stage B: the questions
+**Nie ohne Fragebogen loslegen** – auch wenn die Anfrage schon viel verrät. Bereits Gesagtes wird übersprungen,
+nicht nochmal gefragt. Fragen, Optionen und Defaults stehen in `$SKILL/questions.md`: diese Datei lesen und genau
+so stellen. Eine Runde pro Nachricht.
 
-Read `$SKILL/questions.md`. Send the block between its two `---` lines as ONE message, word for word.
-Skip anything they already told you. Accept "go" as yes to every default. Use its follow-ups only when needed.
+1. **Runde 1 – Projekt:** Zweck, Format, Länge, Medien. Mit `AskUserQuestion`, wenn verfügbar, sonst Textblock.
+2. **Runde 2 – Inhalt & Marke:** Zielgruppe, Botschaft und Screen-Text, Marke, Loop/Ausgabeformat. Als Text.
+   Medien-Folgefragen (Dateien, Higgsfield-Key) aus `questions.md` hier stellen.
+3. **Runde 3 – Look:** `$SKILL/references/stil-katalog.md` lesen, 3 passende Looks wählen, Galerie starten (unten),
+   dann wählen lassen.
+   - Eine id gewählt (z. B. `poster-pop`): `$SKILL/styles/<id>/STYLE.md` lesen. Diese Spec ist ab jetzt Gesetz.
+   - Eigene Referenzen: jede ansehen (Links öffnen, Bilder lesen). Im Arbeitsordner eine neue `STYLE.md` im Format von
+     `$SKILL/references/style-format.md` schreiben – beschreiben, WIE die Referenz gemacht ist (maskierte Schrift,
+     langsame Kamera, lange Holds), mit Hex-Farben und Easing-Zahlen. In 5 Zeilen zeigen.
+   - „Entscheide du“: den besten Look für das Thema nehmen und in einer Zeile begründen.
+4. **Runde 4 – Entscheidung:** Produktionsplan als kleine Tabelle zeigen (Vorlage in `questions.md`) und auf
+   **„los“** warten. Änderungen einarbeiten, Plan neu zeigen. Ohne „los“ kein Phase-2-Schritt.
 
-## Stage C: build
+### Die Galerie starten (Runde 3)
 
-1. **Brief in numbers** (hack 3). Write `BRIEF.md` in the work folder: size (1920 x 1080 for 16:9,
-   1080 x 1920 for 9:16), length, 30 fps, loop or not, the exact words, palette in hex (brand colours replace the
-   style's, its rules stay), fonts with their links, easing numbers, and the always-on ban list:
-   no hue-shifting gradients, no glow, bloom or lens flares, no linear easing on anything the eye follows,
-   no centred-everything, nothing scaling up from zero, at most 6 words on screen, one accent colour, no fake chrome.
-   Where the chosen style's own signature conflicts with this list (a sun's glow, a centred widget), the style wins:
-   its gallery video is the proof. Everything else on the list still applies.
-2. **Storyboard.** Write `storyboard.json` (shots with times, what the graphic does, and the asset for each:
-   `code`, `user_photo`, `user_clip` or `generate`; see `$SKILL/examples/storyboard.json`). Run
-   `python3 $SKILL/scripts/storyboard.py storyboard.json` and show the table.
-   - If any shot is `generate` (a Higgsfield AI clip), the table shows the credit estimate. STOP and wait for a
-     clear "yes" before spending anything. Then make each clip with
-     `python3 $SKILL/scripts/higgsfield.py generate ... --out media/shotN.mp4 --yes`, one at a time, and look at
-     3 frames of each before using it. See `$SKILL/references/media.md`.
-   - With no AI clips, show the table and go on unless they object.
-3. **Build.** `bash $SKILL/scripts/new_project.sh <work>/proj 16x9|9x16 <seconds> <style id>`.
-   If the style has a reference piece, the project starts as a copy of it: change the words, colours, timing and
-   size to the brief (the script warns when the size or length differs; then lay it out again, never crop).
-   Otherwise build from the template. If it must loop and the reference does not, follow `$SKILL/references/loops.md`.
-   Rules that matter:
-   - One clock for all motion (hack 4): `STUDIO.play(t => render(t), { loop })` from `studio.js`, or one paused
-     GSAP timeline. Same time in, same picture out: no Math.random (use `STUDIO.rng`), no Date.now, no timers.
-   - Fonts: only free ones, each loaded with a `<link>`; if any font has a link, link every font
-     (see `$SKILL/references/hyperframes.md`).
-   - Media goes inside the design (masks, cards, shapes), never under unreadable text, never over a face.
-   - Copy their photos and clips into `<work>/proj/media/`. Never move or change their originals.
-4. **3 stills to approve** (hack 5). `bash $SKILL/scripts/stills.sh <work>/proj <t1>,<t2>,<t3>`, each about 0.6 s after
-   a shot change, once things have landed (look at more for your own review if you like). Read `stills/peek.jpg`. Score composition, motion, type, colour and idea from 1 to 10 like a harsh senior
-   motion designer. Fix the worst 3 things; repeat until all are 8 or more. Then show the person the 3 stills and the
-   scores and ask: "Good to render?" Wait for a yes (any notes: fix, new stills, ask again).
-5. **Render.** `bash $SKILL/scripts/render.sh <work>/proj <work>/out/draft.mp4 draft`.
-6. **Checks.** `python3 $SKILL/scripts/pacing_check.py <work>/out/draft.mp4` (add `--loop` if it loops; no dead gap over 1 s, nothing on
-   screen under 0.3 s) and, if it loops, `python3 $SKILL/scripts/loop_check.py <work>/out/draft.mp4 --project <work>/proj`
-   (frame at 0 s must equal the frame at the end). Read the contact sheet. Fix and re-render until both pass.
-7. **Final.** `bash $SKILL/scripts/render.sh <work>/proj <work>/out/final.mp4 high`, run the checks again on it.
-8. **Hand over.** Give the path, length, frame size, file size, check results, the scores, and one line on what you
-   would try next. If the file is over 20 MB, also make a smaller copy for sharing:
+Im Hintergrund starten (läuft auf 127.0.0.1, beendet sich nach 90 Minuten selbst):
+`python3 $SKILL/scripts/gallery.py`
+Sie öffnet sich im Browser und druckt die Adresse – die Adresse immer mitgeben. `--no-open`, wenn nur die Adresse gebraucht wird.
+In der Galerie: Kachel auf „With media“ drehen zeigt den Look mit echten Fotos; „Use this style“ kopiert die id.
+Läuft Claude ohne Browser (z. B. Cloud-Session), die Galerie weglassen und die 3 Vorschläge mit dem
+Katalog-Satz beschreiben; Galerievideos liegen unter `$SKILL/gallery/videos/<id>.mp4` und können als Datei geschickt werden.
+
+## Phase 2: Bauen
+
+1. **Brief in Zahlen** (Hack 3). `BRIEF.md` im Arbeitsordner: Größe (1920 × 1080 für 16:9, 1080 × 1920 für 9:16),
+   Länge, 30 fps, Loop ja/nein, die exakten Wörter, Palette in Hex (Markenfarben ersetzen die des Looks, seine Regeln
+   bleiben), Schriften mit Links, Easing-Zahlen und die immer gültige Verbotsliste:
+   keine farbwechselnden Verläufe, kein Glow/Bloom/Lens Flare, kein lineares Easing bei allem, dem das Auge folgt,
+   nicht alles zentriert, nichts skaliert aus null, max. 6 Wörter im Bild, eine Akzentfarbe, keine Fake-Fensterrahmen.
+   Wo die Signatur des Looks dagegen spricht (Sonnen-Glow, zentriertes Widget), gewinnt der Look – sein Galerievideo
+   ist der Beweis. Der Rest der Liste gilt weiter.
+   „Beides“ als Format = zwei Projekte (`proj-16x9`, `proj-9x16`), jeweils neu gelayoutet, nie zugeschnitten.
+2. **Storyboard.** `storyboard.json` schreiben (Shots mit Zeiten, was die Grafik tut, Asset pro Shot:
+   `code`, `user_photo`, `user_clip` oder `generate`; siehe `$SKILL/examples/storyboard.json`).
+   `python3 $SKILL/scripts/storyboard.py storyboard.json` ausführen und die Tabelle zeigen.
+   - Ist ein Shot `generate` (Higgsfield-KI-Clip), zeigt die Tabelle die Credit-Schätzung. **STOPP** – auf ein klares
+     „ja“ warten, bevor etwas ausgegeben wird. Dann jeden Clip einzeln mit
+     `python3 $SKILL/scripts/higgsfield.py generate ... --out media/shotN.mp4 --yes` erzeugen und von jedem
+     3 Frames ansehen, bevor er verwendet wird. Siehe `$SKILL/references/media.md`.
+   - Ohne KI-Clips: Tabelle zeigen und weitermachen, außer die Person widerspricht.
+3. **Projekt anlegen.** `bash $SKILL/scripts/new_project.sh <arbeit>/proj 16x9|9x16 <sekunden> <style-id>`.
+   Hat der Look ein Referenzstück, startet das Projekt als Kopie davon: Wörter, Farben, Timing und Größe an den Brief
+   anpassen (das Skript warnt bei abweichender Größe oder Länge – dann neu layouten, nie zuschneiden).
+   Sonst aus der Vorlage bauen. Soll es loopen und die Vorlage tut es nicht: `$SKILL/references/loops.md`.
+   Was zählt:
+   - Eine Uhr für alle Bewegung (Hack 4): `STUDIO.play(t => render(t), { loop })` aus `studio.js` oder eine pausierte
+     GSAP-Timeline. Gleiche Zeit rein, gleiches Bild raus: kein Math.random (`STUDIO.rng` nutzen), kein Date.now, keine Timer.
+   - Schriften: nur freie, jede mit `<link>` geladen; hat eine Schrift einen Link, alle verlinken
+     (siehe `$SKILL/references/hyperframes.md`).
+   - Medien sitzen im Design (Masken, Karten, Formen), nie unter unlesbarem Text, nie über einem Gesicht.
+   - Fotos und Clips nach `<arbeit>/proj/media/` kopieren. Originale nie verschieben oder ändern.
+   - Bewegungs-Zahlen und Timing: `$SKILL/references/motion-craft.md`.
+4. **3 Standbilder zur Freigabe** (Hack 5). `bash $SKILL/scripts/stills.sh <arbeit>/proj <t1>,<t2>,<t3>`, jeweils
+   ca. 0,6 s nach einem Shotwechsel, wenn alles gelandet ist (für die eigene Prüfung gern mehr). `stills/peek.jpg` lesen.
+   Komposition, Bewegung, Typo, Farbe und Idee von 1 bis 10 bewerten – wie ein strenger Senior Motion Designer.
+   Die 3 schwächsten Punkte fixen, wiederholen, bis alles bei 8 oder mehr liegt. Dann der Person die 3 Standbilder
+   und Scores zeigen und fragen: „Passt das so? Dann rendere ich.“ Auf ein Ja warten (Anmerkungen: fixen, neue Standbilder, neu fragen).
+
+## Phase 3: Rendern und prüfen
+
+1. **Entwurf.** `bash $SKILL/scripts/render.sh <arbeit>/proj <arbeit>/out/draft.mp4 draft`.
+2. **Checks.** `python3 $SKILL/scripts/pacing_check.py <arbeit>/out/draft.mp4` (`--loop` bei Loops; keine tote Lücke
+   über 1 s, nichts unter 0,3 s im Bild) und bei Loops
+   `python3 $SKILL/scripts/loop_check.py <arbeit>/out/draft.mp4 --project <arbeit>/proj`
+   (Frame bei 0 s muss dem letzten Frame gleichen). Kontaktbogen ansehen. Fixen und neu rendern, bis beide bestehen.
+3. **Final.** `bash $SKILL/scripts/render.sh <arbeit>/proj <arbeit>/out/final.mp4 high`, Checks erneut darauf laufen lassen.
+   Transparentes MOV für DaVinci (Overlay, Bauchbinde): Hintergrund im Projekt transparent lassen und
+   `npx --yes hyperframes@${HF_VERSION:-0.8.181} render <arbeit>/proj -o <arbeit>/out/final.mov -q high --format mov`
+   (siehe „Formats“ in `$SKILL/references/hyperframes.md`). Die Checks laufen auf dem MP4-Entwurf.
+4. **Übergabe.** Pfad, Länge, Bildgröße, Dateigröße, Check-Ergebnisse, die Scores und eine Zeile, was als Nächstes
+   einen Versuch wert wäre (z. B. eine Hook-Variante für A/B-Tests). Über 20 MB zusätzlich eine kleinere Kopie:
    `ffmpeg -v error -i final.mp4 -c:v libx264 -crf 22 -preset slow -an final-share.mp4`.
-   Then read `$SKILL/config.json`. If `link` is not empty, end with one line:
-   "More styles and help: <link_label or link> <link>". If it is empty, say nothing about it.
+   Dann `$SKILL/config.json` lesen. Ist `link` nicht leer, mit einer Zeile enden:
+   „Mehr Looks und Hilfe: <link_label oder link> <link>“. Ist er leer, nichts dazu sagen.
 
-## Hard rules
+## Harte Regeln
 
-- Never ask for, print, log or commit an API key. Keys live in the shell or a `.env` file only.
-- Never spend credits without showing the storyboard with its cost and getting a clear "yes" for that plan.
-- Never cover a face with text or graphics.
-- Never say a check passed without running it. Never say a look is right without looking at a frame.
-- One style per piece. One accent colour. The ban list always applies.
-- Only free fonts. Never copy font files into a project.
+- Nie ohne Fragebogen und ohne „los“ bauen.
+- Nie einen API-Key erfragen, ausgeben, loggen oder committen. Keys nur in der Shell oder in `.env`.
+- Nie Credits ausgeben, ohne das Storyboard mit Kosten gezeigt und ein klares „ja“ für genau diesen Plan bekommen zu haben.
+- Nie ein Gesicht mit Text oder Grafik verdecken.
+- Nie behaupten, ein Check sei bestanden, ohne ihn ausgeführt zu haben. Nie sagen, ein Look sitzt, ohne einen Frame angesehen zu haben.
+- Ein Look pro Stück. Eine Akzentfarbe. Die Verbotsliste gilt immer.
+- Nur freie Schriften. Nie Schriftdateien ins Projekt kopieren.
 
-## Files
+## Dateien
 
-- `gallery/` the gallery page and its videos. `scripts/gallery.py` serves it.
-- `styles/<id>/` 21 looks: `STYLE.md` (palette, type, easing, motion rules, signature moves, media, ban list),
-  plus `index.html`, a full working reference piece, for most of them.
-- `questions.md` the Stage B questions (edit freely). `config.json` the optional closing link.
-- `references/` the 5 hacks with sources, motion numbers, HyperFrames rules, making a loop, Media mode and Higgsfield, style format.
-- `templates/motion/` the blank starter and `studio.js` (the one loop clock).
-- `scripts/` doctor, gallery, new_project, stills, render, pacing_check, loop_check, storyboard, higgsfield.
-- `examples/` a small brief and a storyboard.
+- `questions.md` – der Fragebogen (frei änderbar). `config.json` – optionaler Abschluss-Link.
+- `references/stil-katalog.md` – alle 21 Looks auf Deutsch + Zuordnung Zweck → Look.
+- `styles/<id>/` – die 21 Looks: `STYLE.md` (Palette, Typo, Easing, Bewegungsregeln, Signature-Moves, Medien, Verbote),
+  bei den meisten plus `index.html` als fertiges Referenzstück.
+- `gallery/` – Galerieseite (`index.html`, `looks.js`) und Videos (`videos/<id>.mp4`, `videos/<id>-media.mp4`).
+- `references/` – die 5 Hacks, Bewegungs-Zahlen, HyperFrames-Regeln, Loops, Medien & Higgsfield, Stil-Format.
+- `templates/motion/` – leere Vorlage und `studio.js` (die eine Loop-Uhr).
+- `scripts/` – doctor, gallery, new_project, stills, render, pacing_check, loop_check, storyboard, higgsfield.
+- `examples/` – ein Beispiel-Brief und ein Storyboard.

@@ -12,7 +12,7 @@ Every shot in the piece uses that one spec. No mixing.
 Why: when you leave the look open, every model falls back to the same default look
 (dark background, glow, purple gradient). A fixed spec stops the drift between shots.
 
-How the skill does it: Stage A shows the gallery and the person picks one look. Its STYLE.md is pasted into the brief,
+How the skill does it: round 3 of the questionnaire shows the gallery and the person picks one look. Its STYLE.md is pasted into the brief,
 and its colours become CSS tokens at the top of the file. No colour is typed anywhere else.
 
 Sources:

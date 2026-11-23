@@ -1,77 +1,78 @@
-# Claude Video 2.0
+# Video Studio Cockpit
 
-A free skill for Claude Code that makes motion graphics that look like a studio made them.
+Ein Skill für Claude Code, der Motion Graphics in Studio-Qualität aus Code baut – in 21 festen Looks.
 
-- **Pick a look** from a gallery of 21 styles, each one playing as a real video.
-- **Answer 5 short questions.**
-- **Get your video.** Claude builds it in code, shows you 3 stills to approve, renders an MP4,
-  and checks its own work from the real frames.
+1. **Fragebogen in 4 Runden:** Projekt → Inhalt & Marke → Look aus der Video-Galerie → Produktionsplan.
+   Wir entscheiden gemeinsam, gebaut wird erst nach **„los“**.
+2. **Bauen:** Brief in Zahlen, Storyboard, 3 Standbilder zur Freigabe.
+3. **Rendern & prüfen:** MP4 (oder transparentes MOV für DaVinci), automatischer Pacing-Check und Loop-Check an echten Frames.
 
-Pure graphics, or with your own photos and clips, or with AI clips from Higgsfield (it shows you the
-plan and the credit cost first, and waits for your "yes"). Works on the normal Claude Pro plan.
+Reine Grafik, eigene Fotos und Clips oder KI-Clips von Higgsfield (Storyboard + Credit-Kosten vorher, wartet auf „ja“).
 
-## Install in 3 steps
+## Installation
 
-1. Copy this folder to `~/.claude/skills/`, so you have `~/.claude/skills/claude-video-studio/SKILL.md`.
-2. Only for AI clips: get a key at https://console.higgsfield.ai and add one line to a file called `.env`
-   in your project folder: `HIGGSFIELD_API_KEY=your_key_id:your_key_secret`. Never paste a key into the chat.
-3. Open Claude Code and say: **make me a motion graphic**
+1. Diesen Ordner nach `~/.claude/skills/video-studio-cockpit/` kopieren, sodass
+   `~/.claude/skills/video-studio-cockpit/SKILL.md` existiert:
 
-You also need Node 22 or newer (https://nodejs.org) and ffmpeg (`brew install ffmpeg`).
-Claude checks for you and tells you the one command to fix anything missing.
+   ```bash
+   git clone https://github.com/dannyclees/video-studio-cockpit ~/.claude/skills/video-studio-cockpit
+   ```
 
-## How it works
+2. Nur für KI-Clips: Key bei https://console.higgsfield.ai holen und im Projektordner eine Datei `.env` anlegen mit
+   `HIGGSFIELD_API_KEY=deine_key_id:dein_key_secret`. Den Key nie in den Chat kopieren.
+3. Claude Code öffnen und sagen: **„Mach mir ein Video“** (oder `/video-studio-cockpit`).
 
-**A. Pick a look.** A gallery opens in your browser. Every tile is a real video. Flip a studio piece to
-"With media" to see the same design with real footage inside it. Press **Use this style** and paste
-the name into Claude Code. Or paste links or images of your own reference.
+Außerdem nötig: Node 22+ (https://nodejs.org) und ffmpeg (`brew install ffmpeg`). Claude prüft das mit
+`scripts/doctor.sh` und nennt den einen Befehl, falls etwas fehlt.
 
-**B. Five questions**, in one message, each with a default:
+## Der Fragebogen
 
-1. What is it for? (YouTube intro, Short, launch, explainer, ad) and how long? [12 s, 16:9]
-2. What should it say? (the words on screen) [I'll write it from your topic]
-3. Does it loop? [no]
-4. Your brand: colours, fonts, logo? [use the style's]
-5. Real media? Your photos or clips, AI clips from Higgsfield, or none (pure graphics) [none]
+| Runde | Was gefragt wird |
+|---|---|
+| 1. Projekt | Zweck (Kunden-Ad, eigene Marke, Erklärvideo, Intro/Logo-Sting), Format (9:16 / 16:9 / beides), Länge, Medien |
+| 2. Inhalt & Marke | Zielgruppe, Botschaft + Screen-Text + CTA, Markenfarben/Schrift/Logo, Loop, MP4 oder MOV |
+| 3. Look | Claude schlägt 3 passende Looks vor, die Galerie zeigt alle 21 als echte Videos |
+| 4. Entscheidung | Produktionsplan als Tabelle – erst nach „los“ geht’s los |
 
-The questions live in `questions.md`, so you can change them.
+Fragen, Optionen und Defaults stehen in `questions.md` und dürfen frei angepasst werden.
+Bereits Gesagtes fragt Claude nicht noch einmal. „go“ übernimmt die Defaults einer Runde.
 
-**C. Build.** A storyboard (shots, timings, assets, and the credit cost if there are AI clips),
-3 stills for you to approve, the render, then a pacing check and, for loops, a pixel loop check.
+## Die 21 Looks
 
-## The 21 looks
-
-Studio pieces: `paper-world`, `ink-line`, `weather-widget`, `data-story`, `swiss-kinetic`,
+Studio-Stücke (mit „With media“-Variante): `paper-world`, `ink-line`, `weather-widget`, `data-story`, `swiss-kinetic`,
 `particle-field`, `growing-city`, `explainer-diagram`, `time-travel`, `editor-ui`, `motion-app-ui`,
 `design-app-ui`, `audio-app-ui`.
 
-Code styles: `swiss-grid`, `editorial-paper`, `midnight-grid`, `paper-cut`, `risograph`, `blueprint`,
+Code-Stile (schlank, loopen): `swiss-grid`, `editorial-paper`, `midnight-grid`, `paper-cut`, `risograph`, `blueprint`,
 `graphite-ui`, `poster-pop`.
 
-Each one is a folder in `styles/` with a `STYLE.md` (colours, fonts, easing numbers, motion rules, a ban list)
-and, for most, a full working piece to start from. To see the gallery any time:
-`python3 ~/.claude/skills/claude-video-studio/scripts/gallery.py`
+Übersicht auf Deutsch mit „Zweck → Look“-Zuordnung: `references/stil-katalog.md`.
+Galerie jederzeit öffnen:
 
-## Why it looks good: the 5 hacks
+```bash
+python3 ~/.claude/skills/video-studio-cockpit/scripts/gallery.py
+```
 
-1. Pick one style first and stick to it.
-2. Real references beat adjectives.
-3. Write the brief in numbers.
-4. Loops: one clock, and the last frame must equal the first.
-5. Check frames, not code.
+## Warum es gut aussieht: die 5 Hacks
 
-`references/hacks.md` explains each one and where it comes from.
+1. Einen Stil wählen und dabei bleiben.
+2. Echte Referenzen schlagen Adjektive.
+3. Den Brief in Zahlen schreiben.
+4. Loops: eine Uhr, und der letzte Frame gleicht dem ersten.
+5. Frames prüfen, nicht Code.
 
-## What is inside
+Details und Quellen: `references/hacks.md`.
 
-- `SKILL.md` the steps Claude follows
-- `gallery/` the style gallery and its videos
-- `styles/` the 21 looks
-- `questions.md` the questions (edit freely) and `config.json` (an optional link Claude mentions at the end)
-- `references/` the 5 hacks, motion numbers, engine rules, Media mode, how to write a style
-- `templates/` the starter page and the one-clock helper
-- `scripts/` gallery, render, stills, pacing check, loop check, storyboard, Higgsfield
-- `examples/` a small brief and a storyboard
+## Was drin ist
 
-Made with [HyperFrames](https://hyperframes.heygen.com) and [GSAP](https://gsap.com). All fonts are free
-(Google Fonts, and Switzer loaded from Fontshare at render time). MIT licence.
+- `SKILL.md` – der Ablauf, dem Claude folgt
+- `questions.md` – der Fragebogen · `config.json` – optionaler Link am Ende
+- `gallery/` – Galerieseite und Videos
+- `styles/` – die 21 Looks (je `STYLE.md`, meist plus fertigem Referenzstück)
+- `references/` – Stil-Katalog, 5 Hacks, Bewegungs-Zahlen, HyperFrames-Regeln, Loops, Medien & Higgsfield, Stil-Format
+- `templates/` – Starter-Seite und die Loop-Uhr `studio.js`
+- `scripts/` – doctor, gallery, new_project, stills, render, pacing_check, loop_check, storyboard, higgsfield
+- `examples/` – Beispiel-Brief und Storyboard
+
+Gebaut mit [HyperFrames](https://hyperframes.heygen.com) und [GSAP](https://gsap.com). Alle Schriften frei
+(Google Fonts, Switzer von Fontshare). MIT-Lizenz.

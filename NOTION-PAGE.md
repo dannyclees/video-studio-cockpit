@@ -77,7 +77,7 @@ Sources: https://aiartimind.com/how-to-make-motion-graphics-with-claude-opus-5-5
 ## Install in 3 steps
 
 1. Download the folder and copy it into `~/.claude/skills/`
-   (so the file `~/.claude/skills/claude-video-studio/SKILL.md` exists).
+   (so the file `~/.claude/skills/video-studio-cockpit/SKILL.md` exists).
 2. Only if you want AI clips: get a key at https://console.higgsfield.ai and add this line to a file called
    `.env` in your project folder:
    `HIGGSFIELD_API_KEY=your_key_id:your_key_secret`

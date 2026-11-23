@@ -1,4 +1,4 @@
-"""gallery.py: open the style gallery in your browser (Stage A).
+"""gallery.py: open the style gallery in your browser (questionnaire round 3).
 
 usage: python3 scripts/gallery.py [--no-open] [--port 0] [--minutes 90]
 
