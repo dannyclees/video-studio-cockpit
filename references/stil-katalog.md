@@ -10,7 +10,7 @@ Legende: **Hell/Dunkel** · **Medien** = es gibt ein „With media“-Galerievid
 
 | id | Name | Gefühl | Am besten für | Hell/Dunkel | Vorlage |
 |---|---|---|---|---|---|
-| `explainer-dark` | Dunkles Erklärdiagramm | dunkle KI-Maschine, orange Pakete wandern von Karte zu Karte, 3D-Kamera | Promo- und Erklärvideos, „so arbeiten wir“, KI-/Claude-Code-Workflows | dunkel, Claude-Farben | folgt mit dem ersten Film (loopt) |
+| `explainer-dark` | Dunkles Erklärdiagramm | dunkle KI-Maschine, orange Pakete wandern von Karte zu Karte, 3D-Kamera | Promo- und Erklärvideos, „so arbeiten wir“, KI-/Claude-Code-Workflows | dunkel, Claude-Farben | 36 s, Loop, 16:9 + 9:16 aus einem Code |
 
 Lieblingslook von Danny. Bei Erklär- und Promo-Videos für C&E und KI-Themen immer als Vorschlag A anbieten.
 

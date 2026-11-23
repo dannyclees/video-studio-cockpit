@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" />
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overflow: hidden; background: #141413; }
+#root { position: relative; overflow: hidden; background: #141413;
+  font-family: 'Inter Tight', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; color: #F0EEE6; }
+#stage { position: absolute; left: 0; top: 0; }
+#grid { position: absolute; background-image: radial-gradient(circle, #302F2C 2.1px, transparent 2.6px); }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#fog { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(180deg, #141413 0%, rgba(20,20,19,0.85) 14%, rgba(20,20,19,0) 46%); }
+#vig { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 95% at 50% 45%, rgba(20,20,19,0) 55%, rgba(8,8,7,0.55) 100%); }
+#ov { position: absolute; inset: 0; pointer-events: none; }
+#grain { position: absolute; inset: 0; opacity: 0.05; mix-blend-mode: overlay; pointer-events: none; }
+
+.ph { position: absolute; border: 3px dashed #2A2927; border-radius: 36px; }
+.cast { position: absolute; border-radius: 40px; background: rgba(0,0,0,0.55); filter: blur(34px); }
+.card { position: absolute; border-radius: 36px; background: linear-gradient(180deg, #242321 0%, #1F1E1D 100%);
+  border: 2px solid #2E2D2B;
+  box-shadow: inset 0 2px 0 rgba(240,238,230,0.05), 0 8px 18px rgba(0,0,0,0.35), 0 30px 60px rgba(0,0,0,0.45); }
+.ring { position: absolute; inset: -12px; border-radius: 46px; border: 5px solid #D97757; opacity: 0; }
+.hd { position: absolute; left: 32px; top: 30px; height: 68px; display: flex; align-items: center; gap: 20px; }
+.chip { width: 68px; height: 68px; border-radius: 20px; background: #262624; color: #F0EEE6;
+  display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1.5px #343331; }
+.chip svg { width: 36px; height: 36px; }
+.lbl { font-size: 50px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; white-space: nowrap; color: #F0EEE6; }
+.inset { position: absolute; border-radius: 22px; overflow: hidden; background: #161615; box-shadow: inset 0 0 0 2px #2A2927; }
+.bar { position: absolute; border-radius: 11px; }
+.wire { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pkt { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #F3B9A1 0%, #D97757 55%, #B65A3C 100%);
+  border: 5px solid #1F1E1D; box-shadow: 0 4px 14px rgba(217,119,87,0.45), 0 0 0 2px rgba(217,119,87,0.25); opacity: 0; }
+.pkt.sm { width: 20px; height: 20px; margin: -10px 0 0 -10px; border-width: 4px; }
+.mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: 0; }
+
+.line { position: absolute; overflow: hidden; padding: 0 0.06em 0.12em 0; white-space: nowrap; line-height: 1.04; }
+.line > span { display: inline-block; will-change: transform; }
+.acc { color: #D97757; }
+.mut { color: #87867F; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="36" data-width="1920" data-height="1080">
+  <div id="stage"><div id="grid"></div><div id="world"></div></div>
+  <div id="fog"></div>
+  <div id="vig"></div>
+  <div id="ov"></div>
+  <canvas id="grain"></canvas>
+</div>
+<script>
+/*
+  Clees & Ernster x Claude Code: "Schneller ans Ziel". 36 s, loops. Style: explainer-dark (C&E house style).
+  One layout per format: data-width/data-height pick the 16:9 or the 9:16 layout below (never cropped).
+  Beat map:
+    0.0 - 6.3   Früher: grey weeks pile up in a calendar (overlay, pure function of time)
+    6.0 - 10.4  Heute: Briefing card types and sends, Claude Code card takes over, four task rows appear
+    10.4 - 16.5 the chain runs: Texte write, Videos capture five frames (frame 3 is broken), the Ad assembles with the broken frame
+    16.5 - 20.0 the mistake: a Fix note rides back up to Claude Code, it rewrites, the fix runs down again, frame and ad are clean
+    20.0 - 23.0 Ads -> Anfragen: the chart climbs
+    23.0 - 28.6 wide shot of the whole machine, light sweep, packets keep flowing: Mehr Anfragen. In Tagen.
+    28.6 - 33.2 Abbinder: Clees & Ernster. Schneller ans Ziel.
+    33.2 - 36.0 the machine fades, the opening calendar rebuilds: frame 36 = frame 0
+  Loop: the world is invisible at 0 s and 36 s, the camera rests on the same key, the overlay is a pure function of
+  u = (t > 30 ? t - 36 : t), so the first and last frame are the same picture.
+*/
+(function () {
+const root = document.getElementById('root');
+const W = +root.dataset.width, H = +root.dataset.height, DUR = +root.dataset.duration, V = H > W;
+[document.documentElement, document.body, root].forEach(e => { e.style.width = W + 'px'; e.style.height = H + 'px'; });
+const C = { ground: '#141413', card: '#1F1E1D', edge: '#2E2D2B', track: '#3A3936', chip: '#262624',
+  ivory: '#F0EEE6', g1: '#B0AEA5', g2: '#87867F', g3: '#5E5D59', g4: '#3A3936', tint: '#2B211C', acc: '#D97757' };
+const world = document.getElementById('world'), stage = document.getElementById('stage'), grid = document.getElementById('grid');
+const fog = document.getElementById('fog'), ov = document.getElementById('ov');
+Object.assign(stage.style, { width: W + 'px', height: H + 'px', transformOrigin: `${W / 2}px ${H / 2}px` });
+const tl = gsap.timeline({ paused: true });
+window.__timelines = window.__timelines || {};
+window.__timelines['main'] = tl;
+
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+(function () { const c = document.getElementById('grain'); c.width = W / 2; c.height = H / 2; c.style.width = W + 'px'; c.style.height = H + 'px';
+  const x = c.getContext('2d'), r = mulberry32(8), im = x.createImageData(W / 2, H / 2);
+  for (let i = 0; i < im.data.length; i += 4) { const v = 110 + r() * 145 | 0; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+  x.putImageData(im, 0, 0); })();
+
+function el(parent, css, cls, html) { const e = document.createElement('div'); if (cls) e.className = cls;
+  e.style.position = 'absolute'; Object.assign(e.style, css || {}); if (html != null) e.innerHTML = html; parent.appendChild(e); return e; }
+const px = v => v + 'px';
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const EZ = {}; const ez = n => EZ[n] || (EZ[n] = gsap.parseEase(n));
+const seg = (t, s, d, e) => ez(e || 'power3.out')(clamp((t - s) / d, 0, 1));
+
+// ---------- icons (2.6 px line, round caps) ----------
+const S = 'fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"';
+const ICON = {
+  doc: `<svg viewBox="0 0 32 32" ${S}><path d="M9 4h10l6 6v16a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M19 4v6h6M11 16h10M11 21h7"/></svg>`,
+  term: `<svg viewBox="0 0 32 32" ${S}><rect x="4" y="6" width="24" height="20" rx="4"/><path d="M9.5 12.5l4 3.5-4 3.5M16.5 20h6"/></svg>`,
+  text: `<svg viewBox="0 0 32 32" ${S}><path d="M6 8h20M6 14h20M6 20h14M6 26h9"/></svg>`,
+  video: `<svg viewBox="0 0 32 32" ${S}><rect x="4" y="6" width="24" height="20" rx="5"/><path d="M13.5 11.5v9l7.5-4.5z" fill="currentColor"/></svg>`,
+  ads: `<svg viewBox="0 0 32 32" ${S}><path d="M5 13v6a2 2 0 0 0 2 2h3l9 5V6l-9 5H7a2 2 0 0 0-2 2z"/><path d="M23.5 12a5 5 0 0 1 0 8"/></svg>`,
+  chart: `<svg viewBox="0 0 32 32" ${S}><path d="M5 26h22"/><path d="M8 21l6-6 4 4 8-9"/><path d="M21 10h5v5"/></svg>`,
+  fix: `<svg viewBox="0 0 32 32" ${S}><path d="M20 6.5l5.5 5.5L12 25.5H6.5V20z"/><path d="M16.5 10l5.5 5.5"/></svg>`,
+  send: `<svg viewBox="0 0 32 32" fill="none" stroke="#FFF8F0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 25V8M8.5 15 16 7.5l7.5 7.5"/></svg>`,
+  check: `<svg viewBox="0 0 32 32" fill="none" stroke="#FFF8F0" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16.5l5.5 5.5L24.5 10"/></svg>`,
+  arrow: `<svg viewBox="0 0 32 32" fill="none" stroke="#FFF8F0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16h17M17 9l7 7-7 7"/></svg>`,
+  glass: `<svg viewBox="0 0 32 32" ${S}><path d="M9 4h14M9 28h14M10 4c0 7 12 7 12 12s-12 5-12 12M22 4c0 7-12 7-12 12s12 5 12 12"/></svg>`,
+};
+// a small house, the craft business in every frame
+function house(stroke, sun, w, h, shift, fit) {
+  return `<svg width="${w}" height="${h}" viewBox="0 0 200 112" preserveAspectRatio="xMidYMid ${fit || 'slice'}"><g fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="${150 - shift * 0.4}" cy="${30 + shift * 0.15}" r="11" stroke="${sun}" stroke-width="3"/>
+  <path d="M0 96h200" stroke="${stroke}" stroke-width="3" opacity="0.5"/>
+  <g transform="translate(${shift} 0)" stroke="${stroke}" stroke-width="3.2">
+  <path d="M68 96V58h64v38"/><path d="M60 62l40-32 40 32"/><path d="M92 96V76h16v20"/><path d="M76 66h10v9H76zM114 66h10v9h-10z"/></g></g></svg>`;
+}
+
+// ---------- layout per format (world px) ----------
+const L = V ? {
+  WW: 1800, WH: 3900,
+  N: {
+    brief:  { cx: 900, cy: 380,  w: 860,  h: 400, icon: 'doc',   label: 'Briefing' },
+    claude: { cx: 900, cy: 1000, w: 1000, h: 560, icon: 'term',  label: 'Claude Code' },
+    texte:  { cx: 900, cy: 1680, w: 860,  h: 440, icon: 'text',  label: 'Texte' },
+    videos: { cx: 900, cy: 2320, w: 860,  h: 440, icon: 'video', label: 'Videos' },
+    ads:    { cx: 900, cy: 2960, w: 860,  h: 440, icon: 'ads',   label: 'Ads' },
+    anfr:   { cx: 900, cy: 3600, w: 860,  h: 460, icon: 'chart', label: 'Anfragen' },
+  },
+  wires: n => ({
+    w1: [[900, 580], [900, 720]],
+    w2: [[900, 1280], [900, 1460]],
+    w3: [[900, 1900], [900, 2100]],
+    w4: [[900, 2540], [900, 2740]],
+    w5: [[900, 3180], [900, 3370]],
+    loop: [[1330, 2320], [1580, 2320], [1580, 1000], [1400, 1000]],
+  }),
+  R: { w2: 0, w5: 0, loop: 72 },
+  K: [
+    { t: 0.0,  x: 900, y: 500,  s: 1.00 },
+    { t: 5.9,  x: 900, y: 500,  s: 1.00, e: 'none' },
+    { t: 6.6,  x: 900, y: 420,  s: 1.12, e: 'power3.inOut' },
+    { t: 7.7,  x: 900, y: 424,  s: 1.10, e: 'none' },
+    { t: 8.5,  x: 900, y: 1040,  s: 0.98, e: 'power3.inOut' },
+    { t: 9.8,  x: 900, y: 1044,  s: 0.96, e: 'none' },
+    { t: 10.7, x: 900, y: 1720, s: 1.10, e: 'power2.inOut', dip: 0.2 },
+    { t: 12.0, x: 900, y: 1724, s: 1.08, e: 'none' },
+    { t: 12.7, x: 900, y: 2360, s: 1.10, e: 'power3.inOut' },
+    { t: 14.4, x: 900, y: 2364, s: 1.08, e: 'none' },
+    { t: 15.1, x: 900, y: 3000, s: 1.10, e: 'power3.inOut' },
+    { t: 16.5, x: 900, y: 3004, s: 1.12, e: 'none' },
+    { t: 17.3, x: 980, y: 1660, s: 0.74, e: 'power3.inOut' },
+    { t: 18.1, x: 900, y: 1040, s: 1.00, e: 'power2.inOut' },
+    { t: 18.6, x: 900, y: 1044, s: 1.00, e: 'none' },
+    { t: 19.3, x: 920, y: 2360, s: 0.95, e: 'power2.inOut' },
+    { t: 20.0, x: 900, y: 3000, s: 1.00, e: 'power2.inOut' },
+    { t: 20.8, x: 900, y: 3640, s: 1.10, e: 'power3.inOut' },
+    { t: 22.9, x: 900, y: 3644, s: 1.12, e: 'none' },
+    { t: 24.1, x: 900, y: 1469, s: 0.38, e: 'expo.inOut' },
+    { t: 28.5, x: 900, y: 1480, s: 0.40, e: 'none' },
+    { t: 30.6, x: 900, y: 1500, s: 0.43, e: 'sine.inOut' },
+    { t: 33.0, x: 900, y: 1520, s: 0.45, e: 'none' },
+    { t: 34.6, x: 900, y: 500,  s: 1.00, e: 'power3.inOut' },
+    { t: 36.0, x: 900, y: 500,  s: 1.00, e: 'none' },
+  ],
+} : {
+  WW: 3200, WH: 1800,
+  N: {
+    brief:  { cx: 620,  cy: 520,  w: 600, h: 400, icon: 'doc',   label: 'Briefing' },
+    claude: { cx: 1660, cy: 520,  w: 900, h: 540, icon: 'term',  label: 'Claude Code' },
+    anfr:   { cx: 2700, cy: 520,  w: 620, h: 460, icon: 'chart', label: 'Anfragen' },
+    texte:  { cx: 600,  cy: 1360, w: 560, h: 460, icon: 'text',  label: 'Texte' },
+    videos: { cx: 1400, cy: 1360, w: 600, h: 460, icon: 'video', label: 'Videos' },
+    ads:    { cx: 2200, cy: 1360, w: 560, h: 460, icon: 'ads',   label: 'Ads' },
+  },
+  wires: n => ({
+    w1: [[920, 520], [1210, 520]],
+    w2: [[1360, 790], [1360, 985], [600, 985], [600, 1130]],
+    w3: [[880, 1360], [1100, 1360]],
+    w4: [[1700, 1360], [1920, 1360]],
+    w5: [[2480, 1360], [2700, 1360], [2700, 750]],
+    loop: [[1560, 1130], [1560, 790]],
+  }),
+  R: { w2: 64, w5: 64, loop: 0 },
+  K: [
+    { t: 0.0,  x: 900,  y: 560,  s: 1.25 },
+    { t: 5.9,  x: 900,  y: 560,  s: 1.25, e: 'none' },
+    { t: 6.6,  x: 640,  y: 470,  s: 1.55, e: 'power3.inOut' },
+    { t: 7.7,  x: 660,  y: 470,  s: 1.50, e: 'none' },
+    { t: 8.5,  x: 1660, y: 450,  s: 1.30, e: 'power3.inOut' },
+    { t: 9.8,  x: 1650, y: 455,  s: 1.26, e: 'none' },
+    { t: 10.7, x: 640,  y: 1330, s: 1.50, e: 'power2.inOut', dip: 0.25 },
+    { t: 12.0, x: 660,  y: 1340, s: 1.45, e: 'none' },
+    { t: 12.7, x: 1400, y: 1340, s: 1.45, e: 'power3.inOut' },
+    { t: 14.4, x: 1410, y: 1345, s: 1.42, e: 'none' },
+    { t: 15.1, x: 2200, y: 1340, s: 1.50, e: 'power3.inOut' },
+    { t: 16.5, x: 2190, y: 1345, s: 1.55, e: 'none' },
+    { t: 17.3, x: 1600, y: 1030, s: 0.95, e: 'power3.inOut' },
+    { t: 18.1, x: 1640, y: 680,  s: 1.15, e: 'power2.inOut' },
+    { t: 18.6, x: 1630, y: 685,  s: 1.17, e: 'none' },
+    { t: 19.3, x: 1450, y: 1220, s: 1.05, e: 'power2.inOut' },
+    { t: 20.0, x: 2050, y: 1300, s: 1.10, e: 'power2.inOut' },
+    { t: 20.8, x: 2600, y: 760,  s: 1.20, e: 'power3.inOut' },
+    { t: 22.9, x: 2660, y: 560,  s: 1.40, e: 'power2.inOut' },
+    { t: 24.1, x: 1650, y: 760,  s: 0.56, e: 'expo.inOut' },
+    { t: 28.5, x: 1660, y: 760,  s: 0.60, e: 'none' },
+    { t: 30.6, x: 1700, y: 800,  s: 0.66, e: 'sine.inOut' },
+    { t: 33.0, x: 1740, y: 820,  s: 0.70, e: 'none' },
+    { t: 34.6, x: 900,  y: 560,  s: 1.25, e: 'power3.inOut' },
+    { t: 36.0, x: 900,  y: 560,  s: 1.25, e: 'none' },
+  ],
+};
+const N = L.N;
+for (const k in N) { const n = N[k]; n.x = n.cx - n.w / 2; n.y = n.cy - n.h / 2; }
+Object.assign(world.style, { width: px(L.WW), height: px(L.WH) });
+const GP = 900;
+Object.assign(grid.style, { left: px(-GP), top: px(-GP), width: px(W + 2 * GP), height: px(H + 2 * GP) });
+
+// light pool that follows the action
+const pool = el(world, { left: 0, top: 0, width: '1400px', height: '1040px', borderRadius: '50%',
+  background: 'radial-gradient(closest-side, rgba(217,119,87,0.13), rgba(217,119,87,0.05) 55%, rgba(217,119,87,0) 100%)' });
+gsap.set(pool, { x: N.brief.cx - 700, y: N.brief.cy - 520 });
+
+// ---------- wires ----------
+const svgNS = 'http://www.w3.org/2000/svg';
+const svg = document.createElementNS(svgNS, 'svg');
+svg.setAttribute('width', L.WW); svg.setAttribute('height', L.WH); svg.setAttribute('viewBox', `0 0 ${L.WW} ${L.WH}`);
+Object.assign(svg.style, { position: 'absolute', left: 0, top: 0, overflow: 'visible' });
+world.appendChild(svg);
+function rounded(pts, r) {
+  let d = `M${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i - 1], [bx, by] = pts[i], [cx, cy] = pts[i + 1];
+    const l1 = Math.hypot(bx - ax, by - ay), l2 = Math.hypot(cx - bx, cy - by), rr = Math.min(r, l1 / 2, l2 / 2);
+    const p1 = [bx - (bx - ax) / l1 * rr, by - (by - ay) / l1 * rr], p2 = [bx + (cx - bx) / l2 * rr, by + (cy - by) / l2 * rr];
+    d += ` L${p1[0]} ${p1[1]} Q${bx} ${by} ${p2[0]} ${p2[1]}`;
+  }
+  const e = pts[pts.length - 1]; return d + ` L${e[0]} ${e[1]}`;
+}
+function mk(tag, attrs) { const e = document.createElementNS(svgNS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); return e; }
+const WIRES = {};
+const WP = L.wires(N);
+for (const id in WP) {
+  const pts = WP[id], d = rounded(pts, L.R[id] != null ? L.R[id] : 40);
+  const g = mk('g', {}); svg.appendChild(g);
+  const under = mk('path', { d, class: 'wire', stroke: C.ground, 'stroke-width': 16 });
+  const track = mk('path', { d, class: 'wire', stroke: C.track, 'stroke-width': 6 });
+  const lit = mk('path', { d, class: 'wire', stroke: C.acc, 'stroke-width': 6 });
+  const trail = mk('path', { d, class: 'wire', stroke: C.acc, 'stroke-width': 10, opacity: 0 });
+  [under, track, lit, trail].forEach(p => g.appendChild(p));
+  const Lw = track.getTotalLength();
+  [under, track, lit].forEach(p => { p.setAttribute('stroke-dasharray', `${Lw} ${Lw}`); p.setAttribute('stroke-dashoffset', Lw); });
+  trail.setAttribute('stroke-dasharray', `0 ${Lw * 2}`);
+  const a = pts[0], b = pts[pts.length - 1];
+  const p0 = mk('circle', { cx: a[0], cy: a[1], r: 11, fill: C.card, stroke: C.track, 'stroke-width': 5, opacity: 0 });
+  const p1 = mk('circle', { cx: b[0], cy: b[1], r: 11, fill: C.card, stroke: C.track, 'stroke-width': 5, opacity: 0 });
+  g.appendChild(p0); g.appendChild(p1);
+  const NS = 400, P2 = [];
+  for (let i = 0; i <= NS; i++) { const q = track.getPointAtLength(Lw * i / NS); P2.push([q.x, q.y]); }
+  const at = l => { const f = clamp(l / Lw * NS, 0, NS), i = Math.min(NS - 1, Math.floor(f)), r = f - i;
+    return { x: P2[i][0] + (P2[i + 1][0] - P2[i][0]) * r, y: P2[i][1] + (P2[i + 1][1] - P2[i][1]) * r }; };
+  WIRES[id] = { under, track, lit, trail, L: Lw, p0, p1, at };
+}
+
+// ---------- cards ----------
+const NODES = {};
+for (const id in N) {
+  const n = N[id];
+  const ph = el(world, { left: px(n.x), top: px(n.y), width: px(n.w), height: px(n.h) }, 'ph');
+  const cast = el(world, { left: px(n.x + 30), top: px(n.y + 50), width: px(n.w - 60), height: px(n.h - 40), opacity: 0 }, 'cast');
+  const card = el(world, { left: px(n.x), top: px(n.y), width: px(n.w), height: px(n.h) }, 'card');
+  const ring = el(card, {}, 'ring');
+  const hd = el(card, {}, 'hd');
+  const chip = el(hd, { position: 'relative' }, 'chip', ICON[n.icon]);
+  const lbl = el(hd, { position: 'relative' }, 'lbl', n.label);
+  gsap.set(card, { opacity: 0, y: 60, scale: 0.9, transformOrigin: '50% 60%' });
+  gsap.set([chip, lbl], { opacity: 0, x: -18 });
+  NODES[id] = { n, ph, cast, card, ring, chip, lbl, cw: n.w - 64, ch: n.h - 160 };
+}
+
+// ----- Briefing: a field that types and sends -----
+const B = NODES.brief, bf = el(B.card, { left: '32px', top: '128px', width: px(B.cw), height: px(B.ch), borderRadius: '24px', background: C.chip, boxShadow: 'inset 0 0 0 2px #2E2D2B' });
+const bbars = [[0.62, C.ivory], [0.46, C.g2], [0.30, C.g2]].map(([f, c], i) =>
+  ({ e: el(bf, { left: '32px', top: px(36 + i * 44), height: '22px', width: '0px', borderRadius: '11px', background: c }), w: (B.cw - 150) * f / 0.62 * 0.62 }));
+const bcaret = el(bf, { left: '32px', top: '30px', width: '5px', height: '34px', borderRadius: '3px', background: C.acc });
+const bsend = el(bf, { right: '20px', bottom: '20px', width: '80px', height: '80px', borderRadius: '50%', background: C.acc,
+  boxShadow: '0 10px 22px -6px rgba(217,119,87,0.55), inset 0 2px 0 rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }, '', ICON.send);
+bsend.firstChild.style.width = '38px'; bsend.firstChild.style.height = '38px';
+const bring = el(bf, { right: '20px', bottom: '20px', width: '80px', height: '80px', borderRadius: '50%', border: '4px solid ' + C.acc, opacity: 0 });
+
+// ----- Claude Code: a terminal with four tasks -----
+const CL = NODES.claude, term = el(CL.card, { left: '32px', top: '128px', width: px(CL.cw), height: px(CL.ch) }, 'inset');
+const prm = el(term, { left: '30px', top: '30px', fontSize: '30px', color: C.acc, lineHeight: '34px' }, 'mono', '&gt;');
+const pbar = el(term, { left: '74px', top: '36px', height: '22px', width: '0px', borderRadius: '11px', background: C.ivory });
+const pbarW = CL.cw * 0.58;
+const tcaret = el(term, { left: '74px', top: '30px', width: '5px', height: '34px', borderRadius: '3px', background: C.acc, opacity: 0 });
+const ROWW = [0.52, 0.66, 0.44, 0.58];
+const rowGap = Math.min(70, (CL.ch - 110) / 4);
+const rows = ROWW.map((f, i) => {
+  const y = 96 + i * rowGap;
+  const band = el(term, { left: '14px', top: px(y - 12), width: px(CL.cw - 28), height: '46px', borderRadius: '12px', background: 'rgba(217,119,87,0.16)', opacity: 0 });
+  const g = el(term, { left: '30px', top: px(y), width: px(CL.cw - 60), height: '24px', opacity: 0 });
+  const spin = el(g, { left: 0, top: '-2px', width: '28px', height: '28px', borderRadius: '50%', border: '3px dashed ' + C.g3 });
+  const done = el(g, { left: 0, top: '-2px', width: '28px', height: '28px', borderRadius: '50%', background: C.acc, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0 }, '', ICON.check);
+  done.firstChild.style.width = '18px'; done.firstChild.style.height = '18px';
+  const bar = el(g, { left: '48px', top: '2px', height: '20px', width: px((CL.cw - 160) * f), borderRadius: '10px', background: C.g3 });
+  return { band, g, spin, done, bar };
+});
+
+// ----- Texte: a page writes itself -----
+const TX = NODES.texte, page = el(TX.card, { left: '32px', top: '128px', width: px(TX.cw), height: px(TX.ch), borderRadius: '22px', background: C.chip, boxShadow: 'inset 0 0 0 2px #2E2D2B' });
+const TL = [[30, 0.72, C.ivory, 34], [84, 0.26, C.acc, 8], [116, 0.9, C.g2, 18], [148, 0.82, C.g2, 18], [180, 0.88, C.g2, 18], [212, 0.5, C.g2, 18]];
+const tlines = TL.filter(l => l[0] + l[3] < TX.ch - 16).map(([y, f, c, h]) =>
+  el(page, { left: '30px', top: px(y), width: px((TX.cw - 60) * f), height: px(h), borderRadius: px(h / 2), background: c, clipPath: 'inset(0% 100% 0% 0%)' }));
+
+// ----- Videos: a player and a film strip, frame 3 is broken -----
+const VD = NODES.videos;
+const PH = Math.round(VD.ch * 0.6), PW = VD.cw;
+const player = el(VD.card, { left: '32px', top: '128px', width: px(PW), height: px(PH) }, 'inset');
+const pGood = el(player, { left: 0, top: 0, width: px(PW), height: px(PH) });
+const pBad = el(player, { left: 0, top: 0, width: px(PW), height: px(PH), opacity: 0 });
+const ptrack = el(player, { left: '20px', bottom: '16px', width: px(PW - 40), height: '6px', borderRadius: '3px', background: 'rgba(240,238,230,0.16)' });
+const pfill = el(ptrack, { left: 0, top: 0, height: '6px', width: '0px', borderRadius: '3px', background: C.acc });
+const pX = el(player, { left: px(PW / 2 - 50), top: px(PH / 2 - 56), width: '100px', height: '100px', borderRadius: '50%', border: '4px dashed ' + C.acc, opacity: 0 });
+const FS = 5, FG = 12, FW = (VD.cw - FG * (FS - 1)) / FS, FH = Math.min(VD.ch - PH - 18, FW * 0.56);
+const strip = [];
+for (let i = 0; i < FS; i++) {
+  const fx = 32 + i * (FW + FG), fy = 128 + PH + 16;
+  el(VD.card, { left: px(fx), top: px(fy), width: px(FW), height: px(FH), borderRadius: '8px', border: '2px dashed #3A3936' });
+  const holder = el(VD.card, { left: px(fx), top: px(fy), width: px(FW), height: px(FH), borderRadius: '8px', overflow: 'hidden', background: '#161615', opacity: 0 });
+  const good = el(holder, { left: 0, top: 0 }, '', house(C.ivory, C.g3, FW, FH, (i - 2) * 14));
+  let bad = null;
+  if (i === 2) {
+    bad = el(holder, { left: 0, top: 0, width: px(FW), height: px(FH), background: '#161615' }, '', house(C.g3, C.g4, FW, FH, 0));
+    [0.22, 0.5, 0.74].forEach((yy, k) => el(bad, { left: px(k % 2 ? -6 : 10), top: px(FH * yy), width: px(FW), height: px(FH * 0.12), background: '#262624' }));
+  }
+  gsap.set(holder, { scale: 0.8, y: -12 });
+  strip.push({ holder, good, bad });
+}
+const fring = el(VD.card, { left: px(32 + 2 * (FW + FG) - 8), top: px(128 + PH + 8), width: px(FW + 16), height: px(FH + 16), borderRadius: '12px', border: '4px solid ' + C.acc, opacity: 0 });
+function paintPlayer(target, shift, bad) {
+  target.innerHTML = house(bad ? C.g3 : C.ivory, bad ? C.g4 : C.g2, PW, PH, shift, 'meet');
+  if (bad) [0.2, 0.47, 0.72].forEach((yy, k) => el(target, { left: px(k % 2 ? -14 : 22), top: px(PH * yy), width: px(PW), height: px(PH * 0.11), background: '#262624' }));
+}
+paintPlayer(pGood, -28, false); paintPlayer(pBad, 0, true);
+const pGoodSvg = pGood.firstChild;
+
+// ----- Ads: a feed ad assembles -----
+const AD = NODES.ads, adc = el(AD.card, { left: '32px', top: '128px', width: px(AD.cw), height: px(AD.ch), borderRadius: '22px', background: C.chip, boxShadow: 'inset 0 0 0 2px #2E2D2B', overflow: 'hidden' });
+const IW = Math.round(AD.cw * 0.46), IH = AD.ch - 40;
+const adImg = el(adc, { left: '20px', top: '20px', width: px(IW), height: px(IH), borderRadius: '14px', overflow: 'hidden', background: C.tint });
+const adGood = el(adImg, { left: 0, top: 0, opacity: 0 }, '', house(C.ivory, C.acc, IW, IH, 0));
+const adBad = el(adImg, { left: 0, top: 0, width: px(IW), height: px(IH), background: '#161615' }, '', house(C.g3, C.g4, IW, IH, 0));
+[0.22, 0.5, 0.74].forEach((yy, k) => el(adBad, { left: px(k % 2 ? -8 : 12), top: px(IH * yy), width: px(IW), height: px(IH * 0.12), background: '#262624' }));
+const adX = el(adImg, { left: px(IW / 2 - 40), top: px(IH / 2 - 40), width: '80px', height: '80px', borderRadius: '50%', border: '4px dashed ' + C.acc, opacity: 0 });
+const AX = 20 + IW + 24, AWd = AD.cw - AX - 20;
+const adH1 = el(adc, { left: px(AX), top: '30px', width: px(AWd * 0.92), height: '30px', borderRadius: '15px', background: C.ivory });
+const adH2 = el(adc, { left: px(AX), top: '74px', width: px(AWd * 0.64), height: '30px', borderRadius: '15px', background: C.ivory });
+const adS = el(adc, { left: px(AX), top: '126px', width: px(AWd * 0.8), height: '16px', borderRadius: '8px', background: C.g2 });
+const adCta = el(adc, { left: px(AX), top: px(AD.ch - 40 - 64 + 20 - 20), width: px(Math.min(220, AWd)), height: '64px', borderRadius: '32px', background: C.acc,
+  display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 22px -8px rgba(217,119,87,0.6)' }, '', ICON.arrow);
+adCta.firstChild.style.width = '34px'; adCta.firstChild.style.height = '34px';
+const adParts = [adImg, adH1, adH2, adS, adCta];
+gsap.set(adParts, { opacity: 0, y: 24 });
+
+// ----- Anfragen: the chart climbs -----
+const AN = NODES.anfr, ch = el(AN.card, { left: '32px', top: '128px', width: px(AN.cw), height: px(AN.ch), borderRadius: '22px', background: C.chip, boxShadow: 'inset 0 0 0 2px #2E2D2B' });
+const base = AN.ch - 30, bw = (AN.cw - 60 - 7 * 18) / 8;
+el(ch, { left: '30px', top: px(base), width: px(AN.cw - 60), height: '3px', borderRadius: '2px', background: C.g4 });
+const HV = [0.16, 0.2, 0.18, 0.27, 0.36, 0.5, 0.68, 0.88];
+const bars = HV.map((h, i) => { const hh = (base - 30) * h;
+  const b = el(ch, { left: px(30 + i * (bw + 18)), top: px(base - hh - 6), width: px(bw), height: px(hh), borderRadius: '8px 8px 4px 4px', background: i === 7 ? C.acc : (i >= 5 ? C.g2 : C.g4), transformOrigin: '50% 100%' });
+  gsap.set(b, { scaleY: 0 }); return b; });
+const cpts = HV.map((h, i) => [30 + i * (bw + 18) + bw / 2, base - (base - 30) * h - 28]);
+const csvg = document.createElementNS(svgNS, 'svg'); csvg.setAttribute('width', AN.cw); csvg.setAttribute('height', AN.ch);
+Object.assign(csvg.style, { position: 'absolute', left: 0, top: 0, overflow: 'visible' }); ch.appendChild(csvg);
+const cpath = mk('path', { d: 'M' + cpts.map(p => p.join(' ')).join(' L'), fill: 'none', stroke: C.acc, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+csvg.appendChild(cpath); const CPL = cpath.getTotalLength();
+cpath.setAttribute('stroke-dasharray', `${CPL} ${CPL}`); cpath.setAttribute('stroke-dashoffset', CPL);
+const cdot = el(ch, { left: px(cpts[7][0] - 14), top: px(cpts[7][1] - 14), width: '28px', height: '28px', borderRadius: '50%', background: C.acc, boxShadow: '0 0 0 6px #262624', opacity: 0 });
+gsap.set(cdot, { scale: 0.4 });
+
+// ----- the Fix note -----
+const note = el(world, { left: 0, top: 0, width: '250px', height: '108px', marginLeft: '-125px', marginTop: '-54px', borderRadius: '28px', background: C.card,
+  border: '3px solid ' + C.acc, boxShadow: '0 18px 40px -12px rgba(217,119,87,0.45), 0 4px 10px rgba(0,0,0,0.4)',
+  display: 'flex', alignItems: 'center', gap: '16px', paddingLeft: '16px', opacity: 0 });
+const nchip = el(note, { position: 'relative', width: '72px', height: '72px', borderRadius: '20px', background: C.acc, color: '#FFF8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }, '', ICON.fix);
+nchip.firstChild.style.width = '40px'; nchip.firstChild.style.height = '40px';
+el(note, { position: 'relative' }, 'lbl', 'Fix').style.fontSize = '56px';
+
+// ---------- timeline helpers ----------
+function land(id, t) {
+  const o = NODES[id];
+  tl.to(o.card, { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: 'power3.out' }, t);
+  tl.to(o.cast, { opacity: 1, duration: 0.6, ease: 'power2.out' }, t + 0.1);
+  tl.to(o.ph, { opacity: 0, duration: 0.3, ease: 'power1.in' }, t);
+  tl.to([o.chip, o.lbl], { opacity: 1, x: 0, duration: 0.45, ease: 'power3.out', stagger: 0.07 }, t + 0.12);
+}
+function pulse(id, t) {
+  const o = NODES[id];
+  tl.set(o.ring, { opacity: 0.95, scale: 0.985 }, t);
+  tl.to(o.ring, { opacity: 0, scale: 1.05, duration: 0.7, ease: 'power2.out' }, t);
+  tl.to(o.card, { scale: 1.025, duration: 0.1, ease: 'power2.out' }, t);
+  tl.to(o.card, { scale: 1, duration: 0.5, ease: 'back.out(3)' }, t + 0.1);
+  tl.to(o.chip, { backgroundColor: C.acc, color: '#FFF8F0', duration: 0.12, ease: 'power2.out' }, t);
+  tl.to(o.card, { borderColor: '#5A3A2E', duration: 0.12, ease: 'power2.out' }, t);
+  tl.to(o.card, { borderColor: '#2E2D2B', duration: 0.9, ease: 'power2.inOut' }, t + 0.4);
+  tl.to(o.chip, { backgroundColor: C.tint, color: C.acc, duration: 0.5, ease: 'power2.inOut' }, t + 0.4);
+}
+function drawWire(id, t, dur) {
+  const w = WIRES[id];
+  tl.to([w.under, w.track], { attr: { 'stroke-dashoffset': 0 }, duration: dur, ease: 'power2.inOut' }, t);
+  tl.to(w.p0, { attr: { opacity: 1 }, duration: 0.15 }, t);
+  tl.to(w.p1, { attr: { opacity: 1 }, duration: 0.15 }, t + dur * 0.8);
+}
+function packet(id, t, dur, o) {
+  o = o || {};
+  const w = WIRES[id], dot = el(world, {}, 'pkt' + (o.small ? ' sm' : '')), pr = { u: 0 }, TR = o.small ? 0 : 220;
+  tl.to(pr, { u: 1, duration: dur, ease: o.ease || 'power2.inOut', onUpdate: () => {
+    const u = pr.u, on = u > 0 && u < 1, l = (o.rev ? 1 - u : u) * w.L, p = w.at(l);
+    dot.style.transform = `translate(${p.x}px, ${p.y}px)`;
+    dot.style.opacity = on ? (o.small ? Math.min(1, u * 8, (1 - u) * 8) * 0.85 : 1) : 0;
+    if (TR) { const tlen = Math.min(TR, o.rev ? w.L - l : l);
+      w.trail.setAttribute('stroke-dasharray', `${tlen} ${w.L * 2}`);
+      w.trail.setAttribute('stroke-dashoffset', o.rev ? -l : -(l - tlen)); w.trail.setAttribute('opacity', on ? 0.35 : 0); }
+    if (o.lit) w.lit.setAttribute('stroke-dashoffset', w.L - l);
+  } }, t);
+  if (o.lit) tl.to(w.lit, { attr: { opacity: 0.32 }, duration: 0.8, ease: 'power2.inOut' }, t + dur + 0.05);
+  if (!o.small && !o.rev) tl.to(w.p1, { attr: { stroke: C.acc, fill: C.acc }, duration: 0.15 }, t + dur - 0.05);
+}
+function poolTo(id, t, dur) { const n = N[id]; tl.to(pool, { x: n.cx - 700, y: n.cy - 520, duration: dur, ease: 'power2.inOut' }, t); }
+function rowDone(i, t) { const r = rows[i];
+  tl.to(r.spin, { opacity: 0, scale: 0.6, duration: 0.15, ease: 'power2.in' }, t);
+  tl.fromTo(r.done, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(3)', immediateRender: false }, t + 0.1);
+  tl.to(r.bar, { backgroundColor: C.g1, duration: 0.3 }, t + 0.1); }
+
+// ---------- BEATS ----------
+// 6.0 Briefing (the world fades in, see frame())
+land('brief', 6.05);
+tl.to(bbars[0].e, { width: bbars[0].w, duration: 0.42, ease: 'steps(9)' }, 6.75);
+tl.to(bcaret, { x: bbars[0].w + 8, duration: 0.42, ease: 'steps(9)' }, 6.75);
+tl.set(bcaret, { x: 0, y: 44 }, 7.2);
+tl.to(bbars[1].e, { width: bbars[1].w * 0.74, duration: 0.3, ease: 'steps(6)' }, 7.22);
+tl.to(bcaret, { x: bbars[1].w * 0.74 + 8, duration: 0.3, ease: 'steps(6)' }, 7.22);
+tl.set(bcaret, { x: 0, y: 88 }, 7.55);
+tl.to(bbars[2].e, { width: bbars[2].w * 0.5, duration: 0.2, ease: 'steps(4)' }, 7.56);
+tl.to(bcaret, { x: bbars[2].w * 0.5 + 8, duration: 0.2, ease: 'steps(4)' }, 7.56);
+tl.to(bcaret, { opacity: 0, duration: 0.1 }, 7.78);
+tl.to(bsend, { scale: 0.86, duration: 0.08, ease: 'power2.in' }, 7.72);
+tl.to(bsend, { scale: 1, duration: 0.45, ease: 'back.out(4)' }, 7.8);
+tl.set(bring, { opacity: 0.9, scale: 1 }, 7.8);
+tl.to(bring, { opacity: 0, scale: 1.6, duration: 0.5, ease: 'power2.out' }, 7.8);
+pulse('brief', 7.8);
+// 7.8 -> Claude Code
+drawWire('w1', 7.78, 0.35);
+packet('w1', 7.8, 0.55, { lit: true });
+land('claude', 7.75);
+poolTo('claude', 7.8, 0.7);
+pulse('claude', 8.35);
+tl.set(tcaret, { opacity: 1 }, 8.45);
+tl.to(pbar, { width: pbarW, duration: 0.6, ease: 'steps(12)' }, 8.5);
+tl.to(tcaret, { x: pbarW + 8, duration: 0.6, ease: 'steps(12)' }, 8.5);
+tl.to(tcaret, { opacity: 0, duration: 0.1 }, 9.15);
+rows.forEach((r, i) => { tl.fromTo(r.g, { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.4, ease: 'power3.out', immediateRender: false }, 9.2 + i * 0.12); });
+// 9.8 -> Texte
+drawWire('w2', 9.75, 0.8);
+packet('w2', 9.85, 0.95, { lit: true });
+land('texte', 10.25);
+poolTo('texte', 9.85, 0.95);
+pulse('texte', 10.8);
+let tt = 10.9;
+tlines.forEach((l, i) => { const d = i === 0 ? 0.32 : i === 1 ? 0.12 : 0.2;
+  tl.to(l, { clipPath: 'inset(0% 0% 0% 0%)', duration: d, ease: i === 1 ? 'power3.out' : 'steps(7)' }, tt); tt += d + 0.05; });
+rowDone(0, 12.0);
+// 12.1 -> Videos: five captures, the third is broken
+drawWire('w3', 12.05, 0.3);
+packet('w3', 12.1, 0.5, { lit: true });
+land('videos', 12.05);
+poolTo('videos', 12.1, 0.6);
+pulse('videos', 12.6);
+const CAP = [12.75, 13.08, 13.41, 13.74, 14.07];
+CAP.forEach((t, i) => { tl.fromTo(strip[i].holder, { opacity: 0, scale: 0.8, y: -12 }, { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: 'back.out(2.2)', immediateRender: false }, t + 0.12); });
+// 14.5 -> Ads: assembled with the broken frame
+drawWire('w4', 14.45, 0.3);
+packet('w4', 14.5, 0.5, { lit: true });
+land('ads', 14.45);
+poolTo('ads', 14.5, 0.6);
+pulse('ads', 15.0);
+adParts.forEach((p, i) => tl.fromTo(p, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out', immediateRender: false }, 15.1 + i * 0.14));
+rowDone(2, 15.9);
+tl.fromTo(adX, { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2.5)', immediateRender: false }, 16.1);
+tl.to(adX, { rotation: 90, duration: 3.6, ease: 'none' }, 16.1);
+tl.to(adX, { opacity: 0, scale: 0.85, duration: 0.25, ease: 'power2.in' }, 19.95);
+tl.to(rows[2].done, { opacity: 0, duration: 0.2 }, 16.4);
+tl.to(rows[2].spin, { opacity: 1, scale: 1, duration: 0.2 }, 16.4);
+// 16.6 the Fix note rides back up to Claude Code
+drawWire('loop', 16.5, 0.8);
+const ns = { s: 0.8, u: 0 };
+const noteDraw = () => { const p = WIRES.loop.at(ns.u * WIRES.loop.L);
+  note.style.transform = `translate(${p.x}px, ${p.y}px) scale(${ns.s})`; WIRES.loop.lit.setAttribute('stroke-dashoffset', WIRES.loop.L - ns.u * WIRES.loop.L); };
+tl.to(note, { opacity: 1, duration: 0.2, ease: 'power2.out' }, 16.75);
+tl.to(ns, { s: 1, duration: 0.45, ease: 'back.out(3)', onUpdate: noteDraw }, 16.75);
+tl.to(ns, { u: 1, duration: 1.0, ease: 'power2.inOut', onUpdate: noteDraw }, 16.85);
+tl.to(note, { opacity: 0, duration: 0.2, ease: 'power2.in' }, 17.85);
+tl.to(WIRES.loop.lit, { attr: { opacity: 0.32 }, duration: 0.8 }, 18.0);
+poolTo('claude', 17.1, 0.9);
+pulse('claude', 17.9);
+tl.to(rows[1].band, { opacity: 1, duration: 0.2, ease: 'power2.out' }, 17.95);
+tl.to(rows[1].bar, { width: 0, duration: 0.14, ease: 'power2.in' }, 18.0);
+tl.to(rows[1].bar, { backgroundColor: C.acc, duration: 0.01 }, 18.14);
+tl.to(rows[1].bar, { width: (CL.cw - 160) * ROWW[1], duration: 0.36, ease: 'steps(8)' }, 18.16);
+tl.to(rows[1].band, { opacity: 0.4, duration: 0.6 }, 18.6);
+// 18.6 the fix runs back down: frame 3 is clean, then the ad
+packet('loop', 18.6, 0.65, { rev: true });
+poolTo('videos', 18.6, 0.65);
+tl.to(strip[2].bad, { opacity: 0, duration: 0.18 }, 19.25);
+tl.to(strip[2].holder, { y: -10, duration: 0.12, ease: 'power2.out' }, 19.25);
+tl.to(strip[2].holder, { y: 0, duration: 0.45, ease: 'back.out(3)' }, 19.37);
+tl.set(fring, { opacity: 1, scale: 0.96 }, 19.25);
+tl.to(fring, { opacity: 0, scale: 1.18, duration: 0.7, ease: 'power2.out' }, 19.25);
+pulse('videos', 19.25);
+rowDone(1, 19.3);
+packet('w4', 19.45, 0.45);
+poolTo('ads', 19.45, 0.5);
+pulse('ads', 19.95);
+tl.to(adBad, { opacity: 0, duration: 0.2 }, 19.95);
+tl.to(adGood, { opacity: 1, duration: 0.2 }, 19.95);
+tl.to(adImg, { scale: 1.04, duration: 0.12, ease: 'power2.out' }, 19.95);
+tl.to(adImg, { scale: 1, duration: 0.5, ease: 'back.out(3)' }, 20.07);
+rowDone(2, 20.0);
+// 20.2 -> Anfragen
+drawWire('w5', 20.15, 0.7);
+packet('w5', 20.25, 0.8, { lit: true });
+land('anfr', 20.35);
+poolTo('anfr', 20.25, 0.85);
+pulse('anfr', 21.05);
+bars.forEach((b, i) => tl.to(b, { scaleY: 1, duration: 0.55, ease: 'power3.out' }, 21.15 + i * 0.09));
+tl.to(cpath, { attr: { 'stroke-dashoffset': 0 }, duration: 1.1, ease: 'power2.inOut' }, 21.55);
+tl.to(cdot, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(3)' }, 22.6);
+rowDone(3, 22.2);
+// 22.9 full-circuit light sweep, then the machine keeps living
+['w1', 'w2', 'w3', 'loop', 'w4', 'w5'].forEach((id, i) => { const w = WIRES[id];
+  tl.to(w.lit, { attr: { opacity: 1, 'stroke-dashoffset': 0 }, duration: 0.15, ease: 'power2.out' }, 22.9 + i * 0.09);
+  tl.to(w.lit, { attr: { opacity: 0.45 }, duration: 0.7, ease: 'power2.inOut' }, 23.1 + i * 0.09); });
+[['w1', 0], ['w2', 0.18], ['w3', 0.36], ['w4', 0.54], ['w5', 0.72]].forEach(([id, o]) => {
+  for (let k = 0; k < 12; k++) { const t = 23.1 + o + k * 0.85; if (t + 0.9 < 33.4) packet(id, t, id === 'w2' || id === 'w5' ? 0.9 : 0.55, { small: true, ease: 'none' }); }
+});
+for (let k = 0; k < 5; k++) pulse(['texte', 'videos', 'ads', 'anfr', 'claude'][k], 25.0 + k * 0.9);
+for (let k = 0; k < 4; k++) tl.to(bars[7], { scaleY: k % 2 ? 1 : 1.08, duration: 0.45, ease: 'power2.inOut' }, 25.4 + k * 1.1);
+
+// ---------- camera: pure function of time ----------
+const K = L.K; K.forEach(k => { if (k.e) k.ef = ez(k.e); });
+function cam(t) {
+  if (t <= K[0].t) return K[0];
+  for (let i = 1; i < K.length; i++) { const a = K[i - 1], b = K[i];
+    if (t <= b.t) { const u = (t - a.t) / (b.t - a.t), e = b.ef(u);
+      let s = Math.exp(Math.log(a.s) + (Math.log(b.s) - Math.log(a.s)) * e);
+      if (b.dip) s *= 1 - b.dip * Math.sin(Math.PI * e);
+      return { x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e, s }; } }
+  return K[K.length - 1];
+}
+
+// ---------- overlay: headlines, the "Früher" calendar, the end card (pure functions of t) ----------
+const M = V ? 90 : 120;
+function lines(parent, spec, x, y, size, lh) {
+  const g = el(parent, { left: px(x), top: px(y) });
+  return spec.map((html, i) => { const w = el(g, { left: 0, top: px(i * size * lh), fontSize: px(size) }, 'line'); const s = document.createElement('span'); s.innerHTML = html; w.appendChild(s); return s; });
+}
+// scrims
+const scrim = el(ov, { left: 0, top: 0, width: px(W), height: px(V ? 760 : 380), background: 'linear-gradient(180deg, rgba(20,20,19,0.97) 0%, rgba(20,20,19,0.92) 48%, rgba(20,20,19,0) 100%)', opacity: 0 });
+const dim = el(ov, { left: 0, top: 0, width: px(W), height: px(H), background: 'rgba(20,20,19,0.9)', opacity: 0 });
+// 1. Früher
+const h1 = V ? lines(ov, ['<span class="mut">Früher:</span>', 'Wochen bis zur', 'Kampagne.'], M, 250, 112, 1.08)
+             : lines(ov, ['<span class="mut">Früher:</span>', 'Wochen bis zur', 'Kampagne.'], M, 300, 112, 1.08);
+const CALX = V ? M : 960, CALY = V ? 760 : 250, NC = 6, CP = 150, CWD = 130, CHT = V ? 540 : 520;
+const cal = el(ov, { left: px(CALX), top: px(CALY), width: px(NC * CP - (CP - CWD)), height: px(CHT + 80), overflow: 'hidden' });
+const cols = [];
+for (let i = 0; i < NC + 2; i++) {
+  const c = el(cal, { left: 0, top: '60px', width: px(CWD), height: px(CHT), borderRadius: '18px', background: C.card, border: '2px solid #2E2D2B', overflow: 'hidden', transformOrigin: '50% 100%' });
+  el(c, { left: '18px', top: '18px', fontSize: '28px', color: C.g2 }, 'mono', String(i + 1).padStart(2, '0'));
+  const f = el(c, { left: '10px', right: '10px', bottom: '10px', height: px(CHT - 80), borderRadius: '10px', background: '#3A3936', transformOrigin: '50% 100%' });
+  const hatch = el(f, { inset: 0, background: 'repeating-linear-gradient(135deg, rgba(240,238,230,0.08) 0 10px, rgba(240,238,230,0) 10px 20px)' });
+  cols.push({ c, f });
+}
+const glass = el(ov, { left: px(CALX + NC * CP - (CP - CWD) - 52), top: px(CALY), width: '52px', height: '52px', color: C.g2 }, '', ICON.glass);
+glass.firstChild.style.width = '52px'; glass.firstChild.style.height = '52px';
+const FILL = [-1.5, -0.9, 0.2, 1.1, 2.0, 2.9, 4.55, 5.25];
+// 2. Heute
+const h2 = V ? lines(ov, ['<span class="acc">Heute:</span>', 'Claude Code baut mit.'], M, 150, 84, 1.1)
+             : lines(ov, ['<span class="acc">Heute:</span> Claude Code baut mit.'], M, 88, 80, 1.1);
+// 3. Mehr Anfragen
+const h3 = V ? lines(ov, ['Mehr Anfragen.', '<span class="acc">In Tagen.</span>'], M, 150, 96, 1.08)
+             : lines(ov, ['Mehr Anfragen. <span class="acc">In Tagen.</span>'], M, 88, 80, 1.1);
+// 4. Abbinder
+const ctaY = V ? 780 : 360;
+const h4 = V ? lines(ov, ['Clees &amp;', 'Ernster'], M, ctaY, 176, 1.0) : lines(ov, ['Clees &amp; Ernster'], M, ctaY, 168, 1.0);
+const tagY = ctaY + (V ? 400 : 210);
+const h5 = lines(ov, ['<span style="color:#B0AEA5">Schneller ans</span> Ziel.'], M, tagY, V ? 72 : 66, 1.1);
+const uline = el(ov, { left: px(M), top: px(tagY + (V ? 104 : 96)), width: px(V ? 300 : 280), height: '8px', borderRadius: '4px', background: C.acc, transformOrigin: '0 50%' });
+const cbtn = el(ov, { left: px(M + (V ? 620 : 600)), top: px(tagY - 6), width: '96px', height: '96px', borderRadius: '50%', background: C.acc, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  boxShadow: '0 14px 30px -10px rgba(217,119,87,0.6)' }, '', ICON.arrow);
+cbtn.firstChild.style.width = '46px'; cbtn.firstChild.style.height = '46px';
+// weeks become days: six grey week blocks slide together into one orange bar
+const WKY = tagY + (V ? 180 : 170), WKS = 84, WKP = 104;
+const wks = [0, 1, 2, 3, 4, 5].map(i => el(ov, { left: px(M), top: px(WKY), width: px(WKS), height: px(WKS), borderRadius: '16px', background: '#3A3936', border: '2px solid #4D4C48' }));
+const wkbar = el(ov, { left: px(M), top: px(WKY), width: px(WKS), height: px(WKS), borderRadius: '14px', background: C.acc, transformOrigin: '0 50%', boxShadow: '0 12px 28px -10px rgba(217,119,87,0.6)' });
+
+function maskIn(spans, t, tin, tout, st) {
+  spans.forEach((s, i) => { const a = seg(t, tin + i * (st || 0.08), 0.6, 'power3.out'), b = seg(t, tout + i * 0.04, 0.35, 'power2.in');
+    s.style.transform = `translateY(${(1 - a) * 110 - b * 110}%)`; });
+}
+function overlay(t) {
+  const u = t > 30 ? t - 36 : t;
+  // Früher
+  maskIn(h1, u, -2.5, 5.75, 0.1);
+  const shift = seg(u, 3.95, 0.6, 'power3.inOut') + seg(u, 4.75, 0.6, 'power3.inOut');
+  cols.forEach((o, i) => {
+    const g = seg(u, -2.2 + i * 0.08, 0.55, 'power3.out') * (1 - seg(u, 5.55 + i * 0.04, 0.35, 'power2.in'));
+    o.c.style.transform = `translateX(${(i - shift) * CP}px) scaleY(${Math.max(0.0001, g)})`;
+    o.c.style.opacity = g > 0.001 ? 1 : 0;
+    o.f.style.transform = `scaleY(${Math.max(0.0001, seg(u, FILL[i], 0.6, 'power2.inOut'))})`;
+  });
+  const ga = seg(u, -1.8, 0.4, 'power3.out') * (1 - seg(u, 5.6, 0.3, 'power2.in'));
+  glass.style.opacity = ga;
+  glass.style.transform = `rotate(${180 * (seg(u, 1.7, 0.6, 'power3.inOut') + seg(u, 3.5, 0.6, 'power3.inOut'))}deg)`;
+  // Heute / Mehr Anfragen
+  maskIn(h2, t, 6.55, 10.15);
+  maskIn(h3, t, 23.5, 28.25);
+  scrim.style.opacity = seg(t, 6.4, 0.5, 'power2.out') * (1 - seg(t, 10.3, 0.5, 'power2.inOut')) + seg(t, 23.3, 0.5, 'power2.out') * (1 - seg(t, 28.3, 0.4, 'power2.inOut'));
+  // Abbinder
+  const dv = seg(t, 28.5, 0.6, 'power2.out') * (1 - seg(t, 32.9, 0.6, 'power2.inOut'));
+  dim.style.opacity = 0.86 * dv;
+  stage.style.filter = dv > 0.001 ? `blur(${(dv * 7).toFixed(2)}px)` : 'none';
+  maskIn(h4, t, 28.75, 32.85, 0.12);
+  maskIn(h5, t, 29.55, 32.95);
+  uline.style.display = 'none';
+  uline.style.transform = `scaleX(${seg(t, 30.2, 0.7, 'power3.out') * (1 - seg(t, 32.9, 0.35, 'power2.in'))})`;
+  const cb = seg(t, 30.7, 0.5, 'back.out(2.2)') * (1 - seg(t, 32.95, 0.3, 'power2.in'));
+  const nudge = 14 * (seg(t, 31.5, 0.25, 'power2.out') - seg(t, 31.75, 0.5, 'power3.inOut')) + 14 * (seg(t, 32.2, 0.25, 'power2.out') - seg(t, 32.45, 0.4, 'power3.inOut'));
+  const wout = seg(t, 32.95, 0.3, 'power2.in'), col = seg(t, 31.0, 0.6, 'power3.inOut');
+  wks.forEach((w, i) => { const ap = seg(t, 30.1 + i * 0.07, 0.45, 'power3.out');
+    w.style.opacity = ap * (1 - wout) * (1 - seg(t, 31.55, 0.15, 'power1.in'));
+    w.style.transform = `translate(${i * WKP * (1 - col)}px, ${(1 - ap) * 30}px)`; });
+  const grow = seg(t, 31.7, 0.7, 'expo.out'), pz = seg(t, 32.45, 0.12, 'power2.out') - seg(t, 32.57, 0.4, 'back.out(3)');
+  wkbar.style.opacity = seg(t, 31.5, 0.15, 'power1.out') * (1 - wout);
+  wkbar.style.width = px(WKS + grow * (V ? 520 : 560));
+  wkbar.style.height = px(WKS - 60 * grow); wkbar.style.top = px(WKY + 30 * grow);
+  wkbar.style.transform = `scale(${1 + 0.06 * pz})`;
+  cbtn.style.opacity = Math.min(1, cb * 1.4);
+  cbtn.style.transform = `translateX(${nudge}px) scale(${Math.max(0.0001, 0.6 + 0.4 * cb)})`;
+}
+
+// ---------- frame: camera, tilt, grid, players ----------
+const clock = { t: 0 };
+function frame(t) {
+  const c = cam(t), c0 = cam(Math.max(0, t - 1 / 30)), s = c.s;
+  world.style.transform = `translate(${W / 2 - c.x * s}px, ${H / 2 - c.y * s}px) scale(${s})`;
+  world.style.opacity = seg(t, 6.0, 0.6, 'power2.out') * (1 - seg(t, 33.0, 0.7, 'power2.inOut'));
+  const vx = (c.x - c0.x) * s, vy = (c.y - c0.y) * s;
+  const ry = clamp(vx * 0.06, -6, 6), rx = clamp(-vy * 0.06, -5, 5);
+  const eo = Math.pow(1 - seg(t, 6.0, 1.4, 'none'), 3) + seg(t, 33.4, 1.4, 'power2.inOut');
+  const up = clamp((t - 22.9) / 1.6, 0, 1), bp = Math.pow(Math.sin(Math.PI * up), 1.3);
+  const RX = 18 * eo + 22 * bp, RZ = -4 * eo - 3 * bp;
+  stage.style.transform = `perspective(2200px) rotateX(${rx + RX}deg) rotateY(${ry}deg) rotateZ(${RZ}deg)`;
+  fog.style.opacity = Math.min(0.55, RX / 40);
+  const g = 38 * Math.pow(s, 0.3);
+  grid.style.backgroundSize = `${g}px ${g}px`;
+  grid.style.backgroundPosition = `${((GP + W / 2 - c.x * s * 0.8) % g + g) % g}px ${((GP + H / 2 - c.y * s * 0.8) % g + g) % g}px`;
+  // spinners turn
+  rows.forEach((r, i) => { r.spin.style.rotate = (t * 140 + i * 40) + 'deg'; });
+  // video player: plays during capture, stalls on the broken frame, plays clean after the fix
+  let bad = false, prog = 0, shiftX = -28, shake = 0;
+  if (t < 12.75) { prog = 0.05; }
+  else if (t < 14.4) { const k = clamp(Math.floor((t - 12.75) / 0.33), 0, 4); prog = 0.05 + (t - 12.75) / 1.65 * 0.55; shiftX = -28 + k * 14; bad = k === 2; if (k > 2) { bad = false; } }
+  else if (t < 19.25) { bad = true; prog = 0.45; shake = t < 16.4 ? 0 : (t < 16.75 ? Math.sin((t - 16.4) * 90) * 10 * (1 - (t - 16.4) / 0.35) : 0); }
+  else { const q = clamp((t - 19.25) / 3.5, 0, 1); prog = 0.45 + 0.55 * q; shiftX = -28 + 56 * ez('sine.inOut')(q); }
+  pBad.style.opacity = bad ? 1 : 0; pGood.style.opacity = bad ? 0 : 1;
+  pGoodSvg.querySelector('g g').setAttribute('transform', `translate(${shiftX} 0)`);
+  player.style.transform = `translateX(${shake}px)`;
+  pfill.style.width = ((PW - 40) * prog) + 'px';
+  pX.style.opacity = (t > 16.15 && t < 19.25) ? Math.min(1, (t - 16.15) / 0.2, (19.25 - t) / 0.15) : 0;
+  pX.style.transform = `rotate(${(t - 16.15) * 25}deg)`;
+  overlay(t);
+}
+tl.to(clock, { t: DUR, duration: DUR, ease: 'none', onUpdate: () => frame(clock.t) }, 0);
+frame(0);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => frame(clock.t));
+tl.seek(0);
+})();
+</script>
+</body>
+</html>

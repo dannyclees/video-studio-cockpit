@@ -75,6 +75,9 @@ Katalog-Satz beschreiben; Galerievideos liegen unter `$SKILL/gallery/videos/<id>
      GSAP-Timeline. Gleiche Zeit rein, gleiches Bild raus: kein Math.random (`STUDIO.rng` nutzen), kein Date.now, keine Timer.
    - Schriften: nur freie, jede mit `<link>` geladen; hat eine Schrift einen Link, alle verlinken
      (siehe `$SKILL/references/hyperframes.md`).
+   - Gesperrte CDNs (z. B. in Cloud-Sessions: cdn.jsdelivr.net, Fontshare): GSAP lokal holen
+     (`npm pack gsap@3.14.2`, `package/dist/gsap.min.js` ins Projekt, `<script src="gsap.min.js">`) und nur Google Fonts nutzen.
+     Leere oder einfarbige Standbilder sind fast immer ein nicht geladenes GSAP.
    - Medien sitzen im Design (Masken, Karten, Formen), nie unter unlesbarem Text, nie über einem Gesicht.
    - Fotos und Clips nach `<arbeit>/proj/media/` kopieren. Originale nie verschieben oder ändern.
    - Bewegungs-Zahlen und Timing: `$SKILL/references/motion-craft.md`.

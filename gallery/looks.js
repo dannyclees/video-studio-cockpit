@@ -13,6 +13,7 @@ window.LOOKS = [
   { id: 'motion-app-ui', name: 'Animated in a motion app', kind: 'studio', media: true, best: 'Easing and keyframe explainers, title launches' },
   { id: 'design-app-ui', name: 'A thumbnail, designed', kind: 'studio', media: true, best: 'Design tool demos, thumbnails, layout builds' },
   { id: 'audio-app-ui', name: 'Scored in a music app', kind: 'studio', media: true, best: 'Music and audio demos, beat sync' },
+  { id: 'explainer-dark', name: 'C&E house style: dark explainer', kind: 'studio', media: false, best: 'Promo and explainer films, workflows, AI and Claude Code stories' },
   { id: 'swiss-grid', name: 'Swiss grid', kind: 'code', media: false, best: 'Titles, product facts, launch cards' },
   { id: 'editorial-paper', name: 'Editorial paper', kind: 'code', media: false, best: 'Data, charts, what the numbers say' },
   { id: 'midnight-grid', name: 'Midnight grid', kind: 'code', media: false, best: 'Tech explainers, diagrams, flows' },

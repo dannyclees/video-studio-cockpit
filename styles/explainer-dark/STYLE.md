@@ -3,8 +3,8 @@
 id: explainer-dark
 Best for: Promo- und Erklärvideos zu Abläufen, „so arbeiten wir“, KI- und Claude-Code-Workflows, Systeme, Prozesse, Leistungs-Showcases.
 Mood: eine ruhige, dunkle KI-Maschine, in der jeder Schritt ein warmes oranges Paket ist, das irgendwo ankommt.
-Reference piece: none yet (entsteht mit dem ersten C&E-Film, dann styles/explainer-dark/index.html, loopt)
-Gallery video: gallery/videos/explainer-dark.mp4 (folgt mit dem ersten Film)
+Reference piece: styles/explainer-dark/index.html (36 s, loopt; ein Code für 16:9 und 9:16, das Layout folgt data-width/data-height)
+Gallery video: gallery/videos/explainer-dark.mp4 (der erste C&E-Film „Schneller ans Ziel“)
 Abgeleitet von: `explainer-diagram` (Bewegung, Kamera, Signature-Moves bleiben gleich, nur dunkel und mit Ton-Orange)
 
 ## Palette (hex)
@@ -17,13 +17,13 @@ Abgeleitet von: `explainer-diagram` (Bewegung, Kamera, Signature-Moves bleiben g
 - Lichtpool: radial #D97757 bei 10 bis 14 % Deckkraft hinter der aktiven Karte
 
 ## Type
-- Display: Switzer 800, 50 px Kartenlabels, tracking -0.035em, line height 1
-- Headlines im Bild: Switzer 800, 88 bis 120 px, max. 6 Wörter
-- Body / UI: Switzer 600, tracking -0.02em · Code und Terminal: JetBrains Mono 500
+- Display: Inter Tight 800, 50 px Kartenlabels, tracking -0.035em, line height 1
+- Headlines im Bild: Inter Tight 800, 80 bis 176 px, max. 6 Wörter, Zeilen steigen aus einer Maske
+- Body / UI: Inter Tight 600, tracking -0.02em · Code, Terminal, Wochen-Nummern: JetBrains Mono 500
 - Ein Wort pro Karte. Keine Sätze auf Karten.
 - Font links (paste into <head>; all fonts are free):
-  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700,800&display=swap">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+  (Inter Tight statt Switzer: Google Fonts laden überall, auch in Cloud-Sessions ohne Fontshare-Zugriff)
 
 ## Easing (numbers)
 - card land: power3.out, 0.55 s, von 60 px unten bei scale 0.9
@@ -48,7 +48,8 @@ Abgeleitet von: `explainer-diagram` (Bewegung, Kamera, Signature-Moves bleiben g
 - Der Fix-Loop: eine „Fix“-Notiz fährt einen Draht zurück zu einem früheren Schritt.
 - Ein eingebauter Fehler, den man sieht und dann behoben sieht (Tempo ohne Qualitätsverlust).
 - Ein Lichtlauf fährt am Ende einmal den ganzen Kreis ab, kleine Pakete fließen weiter.
-- Ein Terminal-Karte (Claude Code) mit tippendem Cursor startet die Maschine.
+- Eine Terminal-Karte (Claude Code) mit tippendem Cursor startet die Maschine; ihre Aufgaben-Zeilen haken sich ab, wenn die Karten fertig sind.
+- Abbinder „Wochen → Tage“: sechs graue Wochen-Kästchen schieben sich zusammen und werden zu einer schlanken orangen Linie.
 
 ## Composition
 - Welt 3200 x 1800, zwei Reihen Karten: oben gestufte Höhen, unten in einer Linie.
